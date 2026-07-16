@@ -1,18 +1,49 @@
-# ERPNext + Hermes Agent + Telegram — Ansible + Data Model + API Bridge
+# ErpNext_Hermes — ERPNext + Hermes Agent + Telegram
 
-Triển khai một VPS nội bộ gồm:
+Hệ thống quản trị nội bộ: **ERPNext** làm nguồn dữ liệu duy nhất, **Hermes
+Agent** làm trợ lý AI qua **Telegram** cho từng nhóm người dùng (ban giám
+đốc, trưởng nhóm, nhân viên, sales), tất cả thao tác ghi/đọc đi qua một
+**API Bridge** có whitelist tool cứng — không có endpoint tùy ý, không LLM
+nào được tự khai báo danh tính người dùng.
 
-- ERPNext bằng `frappe_docker` production Compose + overrides, cộng thêm
-  custom app **hermes_ops** (DocType Telegram Identity, AI Approval Request,
-  Telegram Message Route/Event, custom field cho Project/Task/Lead/Opportunity).
-- **ERPNext API Bridge** (`integration/erpnext-bridge`) — service FastAPI nội
-  bộ, là nơi DUY NHẤT được phép gọi ERPNext REST API thay Hermes. Có JSON
-  Schema validation, idempotency, rate limit, audit log, và whitelist tool
-  cứng (không có endpoint tùy ý).
-- Caddy làm reverse proxy và TLS.
-- Nhiều Hermes profile (`ops-admin`, `staff-work`, `sales-crm`,
-  `system-maintainer`), mỗi profile có Telegram bot token + ERPNext API user
-  + bridge shared secret riêng.
+Triển khai bằng Ansible lên 1 VPS, có staging/production tách biệt.
+
+📖 **Đọc trước khi làm bất cứ việc gì:**
+- [`PROJECT_HANDBOOK.md`](PROJECT_HANDBOOK.md) — cấu trúc dự án đầy đủ, cách
+  setup, cheat sheet, hướng phát triển thêm phòng ban, hướng dẫn cho AI
+  agent khác tiếp tục triển khai, quy trình báo lỗi/yêu cầu tính năng.
+- [`docs/PLANNING.md`](docs/PLANNING.md) — nguyên tắc cốt lõi không đổi qua
+  các lần cập nhật, và trạng thái từng hạng mục.
+- [`docs/OPERATIONS.md`](docs/OPERATIONS.md) — runbook vận hành ngắn (logs,
+  backup, update, review bundle hằng tháng).
+- [`CHANGELOG.md`](CHANGELOG.md) — lịch sử thay đổi theo mốc.
+
+## Kiến trúc tóm tắt
+
+```
+Telegram user → Hermes profile (bot, bare-metal/systemd)
+             → ERPNext API Bridge (FastAPI, whitelist tool cứng)
+             → ERPNext (Frappe) + custom app hermes_ops
+```
+
+Thành phần chính:
+
+- **ERPNext** qua `frappe_docker` production Compose, cộng thêm custom app
+  **hermes_ops** (DocType Telegram Identity, AI Approval Request, Telegram
+  Message Route/Event, custom field cho Project/Task/Lead/Opportunity, và
+  role/permission cho toàn bộ phân cấp L0–L3, xem mục 7 của
+  `PROJECT_HANDBOOK.md`).
+- **ERPNext API Bridge** (`integration/erpnext-bridge`) — service FastAPI
+  nội bộ, là nơi DUY NHẤT được phép gọi ERPNext REST API thay Hermes. Có
+  JSON Schema validation, idempotency, rate limit, audit log.
+- **Caddy** — reverse proxy và TLS.
+- **Hermes Agent** — chạy bare-metal qua systemd (không phải Docker — xem
+  `PROJECT_HANDBOOK.md` mục 4), nhiều profile độc lập (`ops-admin`,
+  `staff-work`, `sales-crm`, `system-maintainer`), mỗi profile có Telegram
+  bot token + ERPNext API user + bridge shared secret riêng.
+- **Danh tính cá nhân qua Telegram** — mỗi profile dùng chung 1 bot cho
+  nhiều người, phân biệt qua DocType Telegram Identity, gắn bằng lệnh
+  `/link` xử lý ở tầng gateway hook (không qua LLM, không thể giả mạo).
 - 6 skill lõi (`skills/`) cho pilot: staff-my-tasks, staff-update-progress,
   staff-daily-report, admin-daily-summary, admin-create-task, crm-create-lead.
 - OpenRouter/DeepSeek là provider chính; Tencent TokenHub/HY là fallback.
@@ -20,121 +51,25 @@ Triển khai một VPS nội bộ gồm:
 - Health-check script-only cron (không dùng LLM), cảnh báo qua Telegram.
 - Ansible Vault cho secrets; inventory tách `production/` và `staging/`.
 
-## 0. Trước khi bắt đầu — version pin
-
-`inventories/production/group_vars/all.yml` đã pin `erpnext_version`,
-`frappe_docker_ref`, `hermes_image` về các giá trị mẫu. **Bạn phải tự xác
-minh các tag này tồn tại và đã test trên staging trước khi dùng cho
-production** — không dùng `main`/`latest` (xem mục 14.5 của bản kế hoạch gốc).
-
-## 1. Yêu cầu trên máy điều khiển
+## Bắt đầu nhanh
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
+python3 -m venv .venv && source .venv/bin/activate
 pip install ansible
 ansible-galaxy collection install -r requirements.yml
 ```
 
-## 2. Cấu hình inventory
+Xem `PROJECT_HANDBOOK.md` mục 5 để có hướng dẫn setup đầy đủ, từng bước,
+tự chứa (inventory/vault, dry-run, deploy, tạo site, provision API user +
+L1/L2, tạo bot Telegram, checklist go-live).
 
-Luôn thử trên staging trước:
+## Trước khi bắt đầu — version pin
 
-```text
-inventories/staging/hosts.yml
-inventories/staging/group_vars/all.yml
-```
+`inventories/production/group_vars/all.yml` pin `erpnext_version` và
+`frappe_docker_ref`. **Luôn tự xác minh các tag này tồn tại và đã test trên
+staging trước khi dùng cho production** — không dùng `main`/`latest`.
 
-rồi mới áp dụng cho:
-
-```text
-inventories/production/hosts.yml
-inventories/production/group_vars/all.yml
-```
-
-Tạo vault cho từng environment:
-
-```bash
-cp inventories/staging/group_vars/vault.yml.example inventories/staging/group_vars/vault.yml
-ansible-vault encrypt inventories/staging/group_vars/vault.yml
-
-cp inventories/production/group_vars/vault.yml.example inventories/production/group_vars/vault.yml
-ansible-vault encrypt inventories/production/group_vars/vault.yml
-```
-
-## 3. Kiểm tra kết nối
-
-```bash
-ansible all -i inventories/staging/hosts.yml -m ping --ask-vault-pass
-```
-
-## 4. Dry run
-
-```bash
-ansible-playbook site.yml -i inventories/staging/hosts.yml --check --diff --ask-vault-pass
-```
-
-Lưu ý: Docker Compose và site creation có một số thao tác không mô phỏng hoàn toàn
-trong check mode.
-
-## 5. Triển khai hạ tầng và container (staging trước, production sau)
-
-```bash
-ansible-playbook site.yml -i inventories/staging/hosts.yml --ask-vault-pass
-```
-
-`site.yml` chạy: `bootstrap.yml` → `deploy.yml` (erpnext-app → erpnext →
-erpnext-bridge → caddy → hermes → backup → monitoring) → `verify.yml`.
-
-## 6. Tạo site ERPNext lần đầu
-
-```bash
-ansible-playbook playbooks/create_site.yml -i inventories/staging/hosts.yml --ask-vault-pass
-```
-
-Mở domain ERPNext, hoàn tất Setup Wizard, cài `hermes_ops`:
-
-```bash
-docker compose --project-name company-erpnext-staging \
-  -f /opt/apps/erpnext/generated/docker-compose.yml \
-  exec backend bench get-app hermes_ops /workspace/custom-apps-src/hermes_ops
-docker compose --project-name company-erpnext-staging \
-  -f /opt/apps/erpnext/generated/docker-compose.yml \
-  exec backend bench --site erp-staging.example.com install-app hermes_ops
-docker compose --project-name company-erpnext-staging \
-  -f /opt/apps/erpnext/generated/docker-compose.yml \
-  exec backend bench --site erp-staging.example.com migrate
-```
-
-## 7. Cấp API user cho từng Hermes profile
-
-```bash
-ansible-playbook playbooks/provision_erpnext.yml -i inventories/staging/hosts.yml --ask-vault-pass
-```
-
-Kết quả (API key/secret mỗi profile) được ghi vào file cục bộ
-`generated-secrets-<host>.txt` (đã gitignore). Copy các giá trị này vào
-`vault.yml` (`vault_erpnext_<profile>_api_key/_api_secret`) và **xóa file
-này ngay sau đó**. Không cấp `Administrator` API key cho Hermes.
-
-## 8. Tạo bot Telegram
-
-Tạo bot bằng BotFather: một bot `ops-admin`, một bot `staff-work`, bot
-`sales-crm` chỉ bật khi cần. Điền token vào Vault. Mỗi Hermes profile phải
-dùng token riêng.
-
-Khuyến nghị: Privacy Mode bật; bot chỉ xử lý mention hoặc reply trong group;
-không để bot làm group admin nếu không cần; dùng numeric user ID và
-negative supergroup chat ID (đã cấu hình sẵn trong `config.yaml.j2`).
-
-## 9. Kiểm tra
-
-```bash
-ansible-playbook playbooks/verify.yml -i inventories/staging/hosts.yml --ask-vault-pass
-ansible-playbook playbooks/backup.yml -i inventories/staging/hosts.yml --ask-vault-pass
-```
-
-Test bridge độc lập (không cần VPS thật):
+## Test
 
 ```bash
 cd integration/erpnext-bridge
@@ -142,33 +77,21 @@ pip install -r requirements-dev.txt
 pytest tests/ -v
 ```
 
-## 10. Production hardening — checklist trước go-live
+## Giới hạn hiện tại (xem `PROJECT_HANDBOOK.md` mục 8.2 để biết chi tiết + issue tracker)
 
-- [ ] `frappe_docker_ref`, `erpnext_version`, `hermes_image` đã pin và test trên staging.
-- [ ] `apps/hermes_ops` đã cài trên staging, custom field/DocType hiển thị đúng.
-- [ ] `provision_erpnext.yml` đã chạy, 3 API user (`hermes-ops@`, `hermes-staff@`,
-      `hermes-sales@`) chỉ có đúng role tương ứng, không có Administrator.
-- [ ] ERPNext API Bridge trả lỗi đúng khi gọi tool không tồn tại, khi thiếu
-      idempotency_key, khi progress ngoài 0–100 (xem `tests/`).
-- [ ] Off-site backup (`backup_offsite_enabled: true`) đã cấu hình remote thật
-      và đã restore-test thành công ít nhất một lần.
-- [ ] Health-check cron đã nhận cảnh báo thử (tắt tạm một container để test).
-- [ ] Review toàn bộ generated Compose.
-- [ ] Chạy pilot với nhóm nhỏ (mục Phase 9 trong kế hoạch gốc) trước khi mở rộng.
+- Chỉ có 6/~30 skill so với kế hoạch gốc.
+- Webhook ERPNext (Lead/Opportunity/Task update) → Bridge → Telegram Message
+  Route chưa nối dây thật (mới có DocType + anti-loop enforcement).
+- Off-site backup chưa cấu hình remote thật, chưa restore-test.
+- Dashboard giám sát trực quan chưa có (mới có health-check cron dạng script).
+- Roster L1/L2 (`hermes_org_people`) và Telegram ID thật trong
+  `group_vars/all.yml` vẫn là giá trị rỗng/mẫu, cần điền trước khi deploy
+  production tiếp theo.
+- Pilot thật với người dùng thật (Phase 9 kế hoạch gốc) chưa bắt đầu.
 
-## Giới hạn của bộ khung này
+Xem toàn bộ backlog + issue đang mở tại tab **Issues** của repo này.
 
-Khung này KHÔNG bao gồm:
-- Toàn bộ ~30 skill trong kế hoạch gốc — chỉ có 6 skill lõi để pilot; skill
-  còn lại (crm-*, admin-project-risk-review, quotation-create-draft...) cần
-  viết thêm theo đúng khuôn mẫu trong `skills/`.
-- Cross-message routing đầy đủ (mới có DocType + anti-loop enforcement ở
-  tầng ERPNext, chưa có webhook/listener nối Telegram thật).
-- Onboarding Telegram `/link` end-to-end (mới có `redeem_link_code`/
-  `create_link_code` ở ERPNext; bot Telegram gọi các hàm này qua bridge cần
-  được nối dây thêm).
-- Dashboard giám sát trực quan (mới có script-only health-check cron).
-- Pilot thật với người dùng.
+## Đóng góp / báo lỗi
 
-Các phần trên nên triển khai theo đúng thứ tự Phase ở tài liệu kế hoạch gốc,
-sau khi role matrix/approval matrix/data dictionary (Phase 0) được nghiệm thu.
+Xem `PROJECT_HANDBOOK.md` mục 10 (quy trình báo lỗi/yêu cầu tính năng) và
+mục 8.1 (khuôn mẫu để thêm 1 phòng ban/profile mới).
