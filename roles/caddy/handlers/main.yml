@@ -1,0 +1,21 @@
+---
+- name: Restart Caddy
+  community.docker.docker_compose_v2:
+    project_src: "{{ caddy_root }}"
+    state: restarted
+
+- name: Reload Caddy
+  ansible.builtin.command:
+    argv:
+      - docker
+      - compose
+      - -f
+      - "{{ caddy_root }}/compose.yaml"
+      - exec
+      - -T
+      - caddy
+      - caddy
+      - reload
+      - --config
+      - /etc/caddy/Caddyfile
+  changed_when: true

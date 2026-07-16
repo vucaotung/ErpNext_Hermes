@@ -1,0 +1,12 @@
+{% if erpnext_custom_apps | length > 0 %}
+services:
+{% for svc in ['backend', 'queue-short', 'queue-long', 'scheduler'] %}
+  {{ svc }}:
+    volumes:
+{% for app in erpnext_custom_apps %}
+      - "{{ erpnext_root }}/custom-apps/{{ app.name }}:/workspace/custom-apps-src/{{ app.name }}:ro"
+{% endfor %}
+{% endfor %}
+{% else %}
+{}
+{% endif %}

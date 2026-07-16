@@ -1,0 +1,6 @@
+---
+- name: Restart ERPNext Bridge
+  community.docker.docker_compose_v2:
+    project_src: "{{ bridge_root }}"
+    state: restarted
+    build: always

@@ -1,0 +1,15 @@
+---
+- name: Update platform using pinned versions
+  hosts: all
+  become: true
+  serial: 1
+  pre_tasks:
+    - name: Run pre-update backup
+      ansible.builtin.command: /usr/local/sbin/company-platform-backup
+      changed_when: true
+
+  roles:
+    - erpnext
+    - hermes
+    - caddy
+    - verify

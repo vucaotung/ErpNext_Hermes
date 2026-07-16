@@ -1,0 +1,9 @@
+---
+- name: Bootstrap the VPS
+  hosts: all
+  become: true
+  roles:
+    - common
+    - docker
+    - firewall
+    - networks

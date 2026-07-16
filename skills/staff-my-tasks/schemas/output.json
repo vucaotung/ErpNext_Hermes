@@ -1,0 +1,21 @@
+{
+  "type": "object",
+  "properties": {
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {"type": "string"},
+          "subject": {"type": "string"},
+          "status": {"type": "string"},
+          "priority": {"type": "string"},
+          "expected_end_date": {"type": ["string", "null"]},
+          "progress": {"type": "number"}
+        },
+        "required": ["name", "subject", "status"]
+      }
+    }
+  },
+  "required": ["tasks"]
+}

@@ -1,0 +1,31 @@
+---
+- name: Set timezone
+  community.general.timezone:
+    name: "{{ platform_timezone }}"
+
+- name: Install base packages
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - curl
+      - git
+      - gnupg
+      - jq
+      - rsync
+      - unzip
+      - ufw
+      - python3
+      - python3-pip
+    state: present
+    update_cache: true
+
+- name: Create platform directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ platform_user }}"
+    group: "{{ platform_group }}"
+    mode: "0750"
+  loop:
+    - "{{ platform_root }}"
+    - "{{ backup_root }}"

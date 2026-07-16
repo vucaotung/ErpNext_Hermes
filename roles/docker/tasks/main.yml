@@ -1,0 +1,77 @@
+---
+- name: Create Docker apt keyring directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+
+- name: Download Docker signing key
+  ansible.builtin.get_url:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    dest: /etc/apt/keyrings/docker.asc
+    mode: "0644"
+
+- name: Add Docker apt repository
+  ansible.builtin.apt_repository:
+    repo: >-
+      deb [arch={{ ansible_architecture | replace('x86_64', 'amd64') | replace('aarch64', 'arm64') }}
+      signed-by=/etc/apt/keyrings/docker.asc]
+      https://download.docker.com/linux/ubuntu
+      {{ ansible_distribution_release }} stable
+    filename: docker
+    state: present
+
+- name: Install Docker Engine and Compose plugin
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+      - python3-docker
+    state: present
+    update_cache: true
+
+- name: Configure Docker daemon DNS (avoid inheriting systemd-resolved's stub)
+  ansible.builtin.copy:
+    dest: /etc/docker/daemon.json
+    mode: "0644"
+    content: |
+      {
+        "dns": ["1.1.1.1", "8.8.8.8"]
+      }
+  # Ubuntu's default /etc/resolv.conf points at 127.0.0.53 (systemd-resolved's
+  # stub listener), which only exists in the host's network namespace. Docker
+  # copies that file verbatim into every container's /etc/resolv.conf, so
+  # every container ends up with a nameserver address nothing is listening on
+  # inside it — DNS resolution (and therefore Caddy's ACME cert issuance)
+  # fails with "connection refused" or "network is unreachable" until the
+  # daemon is told to hand out real, working resolvers instead. Confirmed
+  # against a live site: erp.enterpriseos.bond was unreachable over HTTPS for
+  # this exact reason.
+  register: docker_daemon_dns
+  notify: Restart Docker daemon
+
+- name: Enable Docker
+  ansible.builtin.systemd:
+    name: docker
+    enabled: true
+    state: started
+
+- name: Add deployment user to Docker group
+  ansible.builtin.user:
+    name: "{{ platform_user }}"
+    groups: docker
+    append: true
+
+- name: Apply Docker daemon restart now, before any compose project is created
+  ansible.builtin.meta: flush_handlers
+  # Without this, "Restart Docker daemon" would only fire at the very end of
+  # the play (Ansible's default handler timing) — after the erpnext, caddy,
+  # and erpnext-bridge roles have already brought their containers up. Those
+  # containers would then get bounced by the restart and, as seen on a live
+  # run, can come back detached from their custom bridge networks (confirmed:
+  # company-caddy lost proxy-net after a bare `systemctl restart docker`,
+  # needing a manual `docker compose up -d` to reattach it). Flushing here
+  # ensures the daemon (and its new DNS config) is settled first.

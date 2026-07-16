@@ -1,0 +1,265 @@
+[
+ {
+  "doctype": "Custom Field",
+  "name": "Project-ai_summary",
+  "dt": "Project",
+  "fieldname": "ai_summary",
+  "label": "AI Summary",
+  "fieldtype": "Small Text",
+  "insert_after": "percent_complete",
+  "read_only": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Project-ai_risk_level",
+  "dt": "Project",
+  "fieldname": "ai_risk_level",
+  "label": "AI Risk Level",
+  "fieldtype": "Select",
+  "insert_after": "ai_summary",
+  "options": "\nLow\nMedium\nHigh",
+  "read_only": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Project-ai_risk_reason",
+  "dt": "Project",
+  "fieldname": "ai_risk_reason",
+  "label": "AI Risk Reason",
+  "fieldtype": "Small Text",
+  "insert_after": "ai_risk_level",
+  "read_only": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Project-next_review_date",
+  "dt": "Project",
+  "fieldname": "next_review_date",
+  "label": "Next Review Date",
+  "fieldtype": "Date",
+  "insert_after": "ai_risk_reason"
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Project-telegram_group_id",
+  "dt": "Project",
+  "fieldname": "telegram_group_id",
+  "label": "Telegram Group ID",
+  "fieldtype": "Data",
+  "insert_after": "next_review_date"
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Project-telegram_topic_id",
+  "dt": "Project",
+  "fieldname": "telegram_topic_id",
+  "label": "Telegram Topic ID",
+  "fieldtype": "Data",
+  "insert_after": "telegram_group_id"
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Project-last_ai_check",
+  "dt": "Project",
+  "fieldname": "last_ai_check",
+  "label": "Last AI Check",
+  "fieldtype": "Datetime",
+  "insert_after": "telegram_topic_id",
+  "read_only": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Task-blocked_reason",
+  "dt": "Task",
+  "fieldname": "blocked_reason",
+  "label": "Blocked Reason",
+  "fieldtype": "Small Text",
+  "insert_after": "description"
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Task-blocked_since",
+  "dt": "Task",
+  "fieldname": "blocked_since",
+  "label": "Blocked Since",
+  "fieldtype": "Datetime",
+  "insert_after": "blocked_reason",
+  "read_only": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Task-next_action",
+  "dt": "Task",
+  "fieldname": "next_action",
+  "label": "Next Action",
+  "fieldtype": "Small Text",
+  "insert_after": "blocked_since"
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Task-reminder_policy",
+  "dt": "Task",
+  "fieldname": "reminder_policy",
+  "label": "Reminder Policy",
+  "fieldtype": "Select",
+  "insert_after": "next_action",
+  "options": "\nDefault\nNone\nAggressive"
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Task-last_reminder_at",
+  "dt": "Task",
+  "fieldname": "last_reminder_at",
+  "label": "Last Reminder At",
+  "fieldtype": "Datetime",
+  "insert_after": "reminder_policy",
+  "read_only": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Task-last_ai_check",
+  "dt": "Task",
+  "fieldname": "last_ai_check",
+  "label": "Last AI Check",
+  "fieldtype": "Datetime",
+  "insert_after": "last_reminder_at",
+  "read_only": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Task-external_request_id",
+  "dt": "Task",
+  "fieldname": "external_request_id",
+  "label": "External Request ID",
+  "fieldtype": "Data",
+  "insert_after": "last_ai_check",
+  "unique": 1,
+  "read_only": 1,
+  "description": "Idempotency key set by the API Bridge on erp_create_task / erp_update_task_progress."
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Task-telegram_message_id",
+  "dt": "Task",
+  "fieldname": "telegram_message_id",
+  "label": "Telegram Message ID",
+  "fieldtype": "Data",
+  "insert_after": "external_request_id"
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Lead-next_followup_date",
+  "dt": "Lead",
+  "fieldname": "next_followup_date",
+  "label": "Next Followup Date",
+  "fieldtype": "Date",
+  "insert_after": "status"
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Lead-ai_summary",
+  "dt": "Lead",
+  "fieldname": "ai_summary",
+  "label": "AI Summary",
+  "fieldtype": "Small Text",
+  "insert_after": "next_followup_date",
+  "read_only": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Lead-ai_priority",
+  "dt": "Lead",
+  "fieldname": "ai_priority",
+  "label": "AI Priority",
+  "fieldtype": "Select",
+  "insert_after": "ai_summary",
+  "options": "\nLow\nMedium\nHigh"
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Lead-stale_since",
+  "dt": "Lead",
+  "fieldname": "stale_since",
+  "label": "Stale Since",
+  "fieldtype": "Datetime",
+  "insert_after": "ai_priority",
+  "read_only": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Lead-last_ai_check",
+  "dt": "Lead",
+  "fieldname": "last_ai_check",
+  "label": "Last AI Check",
+  "fieldtype": "Datetime",
+  "insert_after": "stale_since",
+  "read_only": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Lead-telegram_owner_id",
+  "dt": "Lead",
+  "fieldname": "telegram_owner_id",
+  "label": "Telegram Owner ID",
+  "fieldtype": "Data",
+  "insert_after": "last_ai_check"
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Opportunity-next_followup_date",
+  "dt": "Opportunity",
+  "fieldname": "next_followup_date",
+  "label": "Next Followup Date",
+  "fieldtype": "Date",
+  "insert_after": "status"
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Opportunity-ai_summary",
+  "dt": "Opportunity",
+  "fieldname": "ai_summary",
+  "label": "AI Summary",
+  "fieldtype": "Small Text",
+  "insert_after": "next_followup_date",
+  "read_only": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Opportunity-ai_priority",
+  "dt": "Opportunity",
+  "fieldname": "ai_priority",
+  "label": "AI Priority",
+  "fieldtype": "Select",
+  "insert_after": "ai_summary",
+  "options": "\nLow\nMedium\nHigh"
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Opportunity-stale_since",
+  "dt": "Opportunity",
+  "fieldname": "stale_since",
+  "label": "Stale Since",
+  "fieldtype": "Datetime",
+  "insert_after": "ai_priority",
+  "read_only": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Opportunity-last_ai_check",
+  "dt": "Opportunity",
+  "fieldname": "last_ai_check",
+  "label": "Last AI Check",
+  "fieldtype": "Datetime",
+  "insert_after": "stale_since",
+  "read_only": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Opportunity-telegram_owner_id",
+  "dt": "Opportunity",
+  "fieldname": "telegram_owner_id",
+  "label": "Telegram Owner ID",
+  "fieldtype": "Data",
+  "insert_after": "last_ai_check"
+ }
+]

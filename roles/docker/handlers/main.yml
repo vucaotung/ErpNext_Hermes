@@ -1,0 +1,10 @@
+---
+- name: Restart Docker daemon
+  ansible.builtin.systemd:
+    name: docker
+    state: restarted
+  # Restarting the daemon restarts every container (their writable state on
+  # bind mounts/volumes is untouched, only the running processes bounce).
+  # This is the only way an already-created container picks up a
+  # /etc/docker/daemon.json change — there's no way to hot-reload just the
+  # default DNS setting for existing containers.

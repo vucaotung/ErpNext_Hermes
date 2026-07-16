@@ -1,0 +1,58 @@
+---
+- name: Create bridge directory
+  ansible.builtin.file:
+    path: "{{ bridge_root }}"
+    state: directory
+    owner: "{{ platform_user }}"
+    group: "{{ platform_group }}"
+    mode: "0750"
+
+- name: Create bridge data directory (idempotency DB, audit log)
+  ansible.builtin.file:
+    path: "{{ bridge_root }}/data"
+    state: directory
+    # The bridge container runs as its own non-root "bridge" user (uid/gid
+    # 10001, set in integration/erpnext-bridge/Dockerfile), not as
+    # platform_user — the bind-mounted volume must be owned by that uid or
+    # the app gets PermissionError writing the idempotency DB / audit log.
+    owner: "{{ bridge_container_uid | default(10001) }}"
+    group: "{{ bridge_container_uid | default(10001) }}"
+    mode: "0700"
+
+- name: Sync ERPNext API Bridge source to the VPS
+  ansible.posix.synchronize:
+    src: "{{ playbook_dir }}/../integration/erpnext-bridge/"
+    dest: "{{ bridge_root }}/src/"
+    delete: true
+    rsync_opts:
+      - "--exclude=__pycache__"
+      - "--exclude=*.pyc"
+      - "--exclude=tests"
+      - "--exclude=.pytest_cache"
+
+- name: Render bridge environment file
+  ansible.builtin.template:
+    src: bridge.env.j2
+    dest: "{{ bridge_root }}/.env"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  register: bridge_env
+  notify: Restart ERPNext Bridge
+
+- name: Render bridge Compose file
+  ansible.builtin.template:
+    src: compose.yaml.j2
+    dest: "{{ bridge_root }}/compose.yaml"
+    owner: "{{ platform_user }}"
+    group: "{{ platform_group }}"
+    mode: "0640"
+  notify: Restart ERPNext Bridge
+
+- name: Build and start the ERPNext API Bridge
+  community.docker.docker_compose_v2:
+    project_src: "{{ bridge_root }}"
+    state: present
+    build: always
+    remove_orphans: true

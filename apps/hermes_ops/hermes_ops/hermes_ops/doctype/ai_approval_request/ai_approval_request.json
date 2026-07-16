@@ -1,0 +1,160 @@
+{
+ "doctype": "DocType",
+ "name": "AI Approval Request",
+ "module": "Hermes Ops",
+ "custom": 0,
+ "istable": 0,
+ "track_changes": 1,
+ "naming_rule": "By fieldname",
+ "autoname": "field:request_id",
+ "sort_field": "requested_at",
+ "sort_order": "DESC",
+ "fields": [
+  {
+   "fieldname": "request_id",
+   "label": "Request ID",
+   "fieldtype": "Data",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "requested_action",
+   "label": "Requested Action",
+   "fieldtype": "Data",
+   "reqd": 1,
+   "description": "Tool name from the API Bridge approval-tools list, e.g. erp_request_deadline_change"
+  },
+  {
+   "fieldname": "requested_by",
+   "label": "Requested By (ERPNext User)",
+   "fieldtype": "Link",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "requested_at",
+   "label": "Requested At",
+   "fieldtype": "Datetime",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "target_doctype",
+   "label": "Target DocType",
+   "fieldtype": "Data",
+   "reqd": 1
+  },
+  {
+   "fieldname": "target_document",
+   "label": "Target Document",
+   "fieldtype": "Dynamic Link",
+   "options": "target_doctype"
+  },
+  {
+   "fieldname": "section_break_payload",
+   "fieldtype": "Section Break",
+   "label": "Payload"
+  },
+  {
+   "fieldname": "payload_json",
+   "label": "Payload JSON",
+   "fieldtype": "Code",
+   "options": "JSON",
+   "reqd": 1
+  },
+  {
+   "fieldname": "payload_hash",
+   "label": "Payload Hash",
+   "fieldtype": "Data",
+   "read_only": 1,
+   "description": "SHA-256 of payload_json at approval time. If payload changes after approval, the hash mismatches and the approval is void (m\u1ee5c 8.4)."
+  },
+  {
+   "fieldname": "section_break_status",
+   "fieldtype": "Section Break",
+   "label": "Status"
+  },
+  {
+   "fieldname": "approval_status",
+   "label": "Approval Status",
+   "fieldtype": "Select",
+   "options": "Pending\nApproved\nRejected\nExpired",
+   "default": "Pending",
+   "reqd": 1
+  },
+  {
+   "fieldname": "approved_by",
+   "label": "Approved By",
+   "fieldtype": "Link",
+   "options": "User"
+  },
+  {
+   "fieldname": "approved_at",
+   "label": "Approved At",
+   "fieldtype": "Datetime"
+  },
+  {
+   "fieldname": "expires_at",
+   "label": "Expires At",
+   "fieldtype": "Datetime",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "execution_status",
+   "label": "Execution Status",
+   "fieldtype": "Select",
+   "options": "Not Started\nExecuting\nDone\nFailed",
+   "default": "Not Started"
+  },
+  {
+   "fieldname": "executed_at",
+   "label": "Executed At",
+   "fieldtype": "Datetime"
+  },
+  {
+   "fieldname": "execution_result",
+   "label": "Execution Result",
+   "fieldtype": "Long Text"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  },
+  {
+   "role": "Hermes Ops Admin",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "if_owner": 0
+  },
+  {
+   "role": "Hermes Staff",
+   "read": 1,
+   "write": 0,
+   "create": 1,
+   "delete": 0,
+   "if_owner": 1
+  },
+  {
+   "role": "Hermes Sales",
+   "read": 1,
+   "write": 0,
+   "create": 1,
+   "delete": 0,
+   "if_owner": 1
+  }
+ ]
+}

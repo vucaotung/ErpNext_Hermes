@@ -1,0 +1,32 @@
+---
+- name: Create ERPNext root directories (idempotent, may run before role erpnext)
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ platform_user }}"
+    group: "{{ platform_group }}"
+    mode: "0750"
+  loop:
+    - "{{ erpnext_root }}"
+    - "{{ erpnext_root }}/generated"
+    - "{{ erpnext_root }}/custom-apps"
+
+- name: Sync hermes_ops custom app source to the VPS
+  ansible.posix.synchronize:
+    src: "{{ playbook_dir }}/../apps/hermes_ops/"
+    dest: "{{ erpnext_root }}/custom-apps/hermes_ops/"
+    delete: true
+    rsync_opts:
+      - "--exclude=__pycache__"
+      - "--exclude=*.pyc"
+  when: erpnext_custom_apps | selectattr('name', 'equalto', 'hermes_ops') | list | length > 0
+
+- name: Render custom-apps Compose override (bind-mounts app source read-only)
+  ansible.builtin.template:
+    src: compose.custom-apps.yaml.j2
+    dest: "{{ erpnext_root }}/generated/compose.custom-apps.yaml"
+    owner: "{{ platform_user }}"
+    group: "{{ platform_group }}"
+    mode: "0640"
+  register: custom_apps_override
+  notify: Restart ERPNext

@@ -1,0 +1,4 @@
+name: link-command
+description: Handle /link <code> — resolve real Telegram user_id and redeem via bridge
+events:
+  - command:link

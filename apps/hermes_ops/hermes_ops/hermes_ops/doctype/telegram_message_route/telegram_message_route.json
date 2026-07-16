@@ -1,0 +1,117 @@
+{
+ "doctype": "DocType",
+ "name": "Telegram Message Route",
+ "module": "Hermes Ops",
+ "custom": 0,
+ "istable": 0,
+ "track_changes": 1,
+ "fields": [
+  {
+   "fieldname": "route_name",
+   "label": "Route Name",
+   "fieldtype": "Data",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "event_type",
+   "label": "Event Type",
+   "fieldtype": "Data",
+   "reqd": 1,
+   "description": "e.g. task_progress_update, opportunity_won, task_blocked_escalation"
+  },
+  {
+   "fieldname": "enabled",
+   "label": "Enabled",
+   "fieldtype": "Check",
+   "default": "1"
+  },
+  {
+   "fieldname": "section_break_source",
+   "fieldtype": "Section Break",
+   "label": "Source"
+  },
+  {
+   "fieldname": "source_type",
+   "label": "Source Type",
+   "fieldtype": "Select",
+   "options": "DM\nGroup\nTopic\nERPNext"
+  },
+  {
+   "fieldname": "source_chat_id",
+   "label": "Source Chat ID",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "source_topic_id",
+   "label": "Source Topic ID",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_target",
+   "fieldtype": "Section Break",
+   "label": "Target"
+  },
+  {
+   "fieldname": "target_type",
+   "label": "Target Type",
+   "fieldtype": "Select",
+   "options": "DM\nGroup\nTopic"
+  },
+  {
+   "fieldname": "target_chat_id",
+   "label": "Target Chat ID",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "target_topic_id",
+   "label": "Target Topic ID",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "section_break_policy",
+   "fieldtype": "Section Break",
+   "label": "Policy"
+  },
+  {
+   "fieldname": "delivery_mode",
+   "label": "Delivery Mode",
+   "fieldtype": "Select",
+   "options": "Notify\nSummarize\nEscalate\nApproval\nDirect Message\nTopic Message"
+  },
+  {
+   "fieldname": "data_classification",
+   "label": "Data Classification",
+   "fieldtype": "Select",
+   "options": "Public\nInternal\nSensitive",
+   "default": "Internal",
+   "description": "Sensitive events are never routed to a Group/Topic target, only DM (m\u1ee5c 5.9)."
+  },
+  {
+   "fieldname": "approval_required",
+   "label": "Approval Required",
+   "fieldtype": "Check",
+   "default": "0"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  },
+  {
+   "role": "Hermes Ops Admin",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 0
+  }
+ ]
+}

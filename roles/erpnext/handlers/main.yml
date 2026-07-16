@@ -1,0 +1,9 @@
+---
+- name: Restart ERPNext
+  community.docker.docker_compose_v2:
+    project_src: "{{ erpnext_root }}/generated"
+    files:
+      - docker-compose.yml
+    project_name: "{{ erpnext_project_name }}"
+    state: restarted
+    remove_orphans: true

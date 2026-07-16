@@ -1,0 +1,4 @@
+---
+- import_playbook: playbooks/bootstrap.yml
+- import_playbook: playbooks/deploy.yml
+- import_playbook: playbooks/verify.yml

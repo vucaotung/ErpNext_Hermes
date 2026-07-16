@@ -1,0 +1,1 @@
+{"type": "object", "properties": {"task_id": {"type": "string"}, "subject": {"type": "string"}}, "required": ["task_id"]}

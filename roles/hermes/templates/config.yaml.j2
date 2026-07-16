@@ -1,0 +1,49 @@
+model:
+  provider: "{{ hermes_primary_provider }}"
+  default: "{{ hermes_primary_model }}"
+
+fallback_providers:
+  - provider: "{{ hermes_fallback_provider }}"
+    model: "{{ hermes_fallback_model }}"
+
+agent:
+  tool_use_enforcement: true
+  reasoning_effort: medium
+
+compression:
+  enabled: true
+  threshold: 0.55
+
+telegram:
+  require_mention: true
+  exclusive_bot_mentions: true
+  observe_unmentioned_group_messages: false
+
+gateway:
+  platforms:
+    telegram:
+      extra:
+        allow_from:
+{% for user_id in item.allowed_users %}
+          - "{{ user_id }}"
+{% endfor %}
+        allow_admin_from:
+{% for user_id in item.admin_users %}
+          - "{{ user_id }}"
+{% endfor %}
+        group_allowed_chats:
+{% for chat_id in item.group_allowed_chats %}
+          - "{{ chat_id }}"
+{% endfor %}
+        group_allow_admin_from:
+{% for user_id in item.group_admin_users %}
+          - "{{ user_id }}"
+{% endfor %}
+        user_allowed_commands:
+{% for command in item.user_allowed_commands %}
+          - "{{ command }}"
+{% endfor %}
+        group_user_allowed_commands:
+          - status
+          - help
+          - whoami

@@ -1,0 +1,61 @@
+---
+- name: Create ERPNext directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ platform_user }}"
+    group: "{{ platform_group }}"
+    mode: "0750"
+  loop:
+    - "{{ erpnext_root }}"
+    - "{{ erpnext_root }}/src"
+    - "{{ erpnext_root }}/generated"
+
+- name: Clone official frappe_docker repository
+  ansible.builtin.git:
+    repo: "{{ frappe_docker_repo }}"
+    dest: "{{ erpnext_root }}/src"
+    version: "{{ frappe_docker_ref }}"
+    force: false
+    update: true
+  register: frappe_docker_checkout
+
+- name: Render ERPNext environment file
+  ansible.builtin.template:
+    src: erpnext.env.j2
+    dest: "{{ erpnext_root }}/src/.env"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  register: erpnext_env
+
+- name: Render external proxy-network override
+  ansible.builtin.template:
+    src: compose.proxy-network.yaml.j2
+    dest: "{{ erpnext_root }}/generated/compose.proxy-network.yaml"
+    owner: "{{ platform_user }}"
+    group: "{{ platform_group }}"
+    mode: "0640"
+  register: erpnext_proxy_override
+
+- name: Generate canonical ERPNext Compose file
+  ansible.builtin.shell: |
+    set -euo pipefail
+    docker compose --env-file .env       -f compose.yaml       -f overrides/compose.mariadb.yaml       -f overrides/compose.redis.yaml       -f "{{ erpnext_root }}/generated/compose.proxy-network.yaml"       -f "{{ erpnext_root }}/generated/compose.custom-apps.yaml"       config > "{{ erpnext_root }}/generated/docker-compose.yml.tmp"
+    mv "{{ erpnext_root }}/generated/docker-compose.yml.tmp"        "{{ erpnext_root }}/generated/docker-compose.yml"
+  args:
+    chdir: "{{ erpnext_root }}/src"
+    executable: /bin/bash
+  when: frappe_docker_checkout.changed or erpnext_env.changed or erpnext_proxy_override.changed or custom_apps_override.changed
+  notify: Restart ERPNext
+
+- name: Start ERPNext stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ erpnext_root }}/generated"
+    files:
+      - docker-compose.yml
+    project_name: "{{ erpnext_project_name }}"
+    state: present
+    pull: missing
+    remove_orphans: true

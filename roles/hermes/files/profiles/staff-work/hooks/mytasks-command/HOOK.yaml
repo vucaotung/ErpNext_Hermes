@@ -1,0 +1,4 @@
+name: mytasks-command
+description: Handle /mytasks — list the linked ERPNext user's own tasks
+events:
+  - command:mytasks

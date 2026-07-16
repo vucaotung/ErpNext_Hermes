@@ -1,0 +1,76 @@
+{
+ "doctype": "DocType",
+ "name": "Telegram Message Event",
+ "module": "Hermes Ops",
+ "custom": 0,
+ "istable": 0,
+ "naming_rule": "By fieldname",
+ "autoname": "field:event_id",
+ "sort_field": "created_at",
+ "sort_order": "DESC",
+ "fields": [
+  {
+   "fieldname": "event_id",
+   "label": "Event ID",
+   "fieldtype": "Data",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "source_message_id",
+   "label": "Source Message ID",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "route",
+   "label": "Route",
+   "fieldtype": "Link",
+   "options": "Telegram Message Route",
+   "reqd": 1
+  },
+  {
+   "fieldname": "delivery_id",
+   "label": "Delivery ID",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "correlation_id",
+   "label": "Correlation ID",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "hop_count",
+   "label": "Hop Count",
+   "fieldtype": "Int",
+   "default": "0",
+   "reqd": 1
+  },
+  {
+   "fieldname": "created_at",
+   "label": "Created At",
+   "fieldtype": "Datetime",
+   "reqd": 1
+  },
+  {
+   "fieldname": "delivered_at",
+   "label": "Delivered At",
+   "fieldtype": "Datetime"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  },
+  {
+   "role": "Hermes Ops Admin",
+   "read": 1,
+   "write": 0,
+   "create": 1,
+   "delete": 0
+  }
+ ]
+}

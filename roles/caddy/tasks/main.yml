@@ -1,0 +1,32 @@
+---
+- name: Create Caddy directory
+  ansible.builtin.file:
+    path: "{{ caddy_root }}"
+    state: directory
+    owner: "{{ platform_user }}"
+    group: "{{ platform_group }}"
+    mode: "0750"
+
+- name: Render Caddy Compose file
+  ansible.builtin.template:
+    src: compose.yaml.j2
+    dest: "{{ caddy_root }}/compose.yaml"
+    owner: "{{ platform_user }}"
+    group: "{{ platform_group }}"
+    mode: "0640"
+  notify: Restart Caddy
+
+- name: Render Caddyfile
+  ansible.builtin.template:
+    src: Caddyfile.j2
+    dest: "{{ caddy_root }}/Caddyfile"
+    owner: "{{ platform_user }}"
+    group: "{{ platform_group }}"
+    mode: "0640"
+  notify: Reload Caddy
+
+- name: Start Caddy
+  community.docker.docker_compose_v2:
+    project_src: "{{ caddy_root }}"
+    state: present
+    pull: missing

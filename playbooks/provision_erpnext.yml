@@ -1,0 +1,68 @@
+---
+# Run once after playbooks/create_site.yml (and after apps/hermes_ops is
+# installed on the site). Creates one ERPNext API user per enabled Hermes
+# profile, with exactly the role that profile needs — never Administrator
+# (mục 12.3).
+#
+# Secrets are written to a local, gitignored file so you can copy them into
+# inventories/<env>/group_vars/vault.yml and then delete the file. They are
+# never printed to the terminal in plain form more than once and never
+# logged by Ansible (no_log: true throughout).
+
+- name: Provision least-privilege ERPNext API users for Hermes profiles
+  hosts: all
+  become: true
+  vars:
+    profile_role_map:
+      ops-admin: "Hermes Ops Admin"
+      staff-work: "Hermes Staff"
+      sales-crm: "Hermes Sales"
+  tasks:
+    - name: Provision one API user per enabled profile
+      ansible.builtin.command:
+        argv:
+          - docker
+          - compose
+          - --project-name
+          - "{{ erpnext_project_name }}"
+          - -f
+          - "{{ erpnext_root }}/generated/docker-compose.yml"
+          - exec
+          - -T
+          - backend
+          - bench
+          - --site
+          - "{{ erpnext_site_name }}"
+          - execute
+          - hermes_ops.provisioning.provision_profile
+          - --kwargs
+          - "{{ {'email': item.erpnext_api_user, 'full_name': item.name, 'role_name': profile_role_map[item.name]} | to_json }}"
+      register: provision_result
+      no_log: true
+      changed_when: true
+      loop: "{{ hermes_profiles }}"
+      loop_control:
+        label: "{{ item.name }}"
+      when:
+        - item.enabled | default(true)
+        - item.erpnext_api_user | default('') | length > 0
+        - item.name in profile_role_map
+
+    - name: Write generated credentials to a local, gitignored file
+      delegate_to: localhost
+      become: false
+      no_log: true
+      ansible.builtin.copy:
+        dest: "{{ playbook_dir }}/../generated-secrets-{{ inventory_hostname }}.txt"
+        mode: "0600"
+        content: |
+          Generated {{ ansible_date_time.iso8601 }} — copy these into
+          inventories/<env>/group_vars/vault.yml as
+          vault_erpnext_<profile>_api_key / _api_secret, then delete this file.
+
+          {% for res in provision_result.results %}
+          {% if res.stdout is defined %}
+          {{ res.item.name }}: {{ res.stdout }}
+          {% endif %}
+          {% endfor %}
+      when: provision_result is defined

@@ -1,0 +1,12 @@
+---
+- name: Roll back to previously pinned versions
+  hosts: all
+  become: true
+  tasks:
+    - name: Stop and explain rollback prerequisites
+      ansible.builtin.fail:
+        msg: >-
+          Set frappe_docker_ref, erpnext_version and hermes_image to the previously
+          tested values in group_vars, then run playbooks/update.yml. Database
+          rollback requires a matching off-host backup and is intentionally not
+          automated by this generic playbook.

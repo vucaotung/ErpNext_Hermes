@@ -1,0 +1,41 @@
+---
+- name: Install rclone (for off-site backup sync)
+  ansible.builtin.apt:
+    name: rclone
+    state: present
+  when: backup_offsite_enabled | default(false)
+
+- name: Create rclone config directory
+  ansible.builtin.file:
+    path: /etc/company-platform
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+  when: backup_offsite_enabled | default(false)
+
+- name: Render rclone config (off-site remote credentials)
+  ansible.builtin.template:
+    src: rclone.conf.j2
+    dest: /etc/company-platform/rclone.conf
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  when: backup_offsite_enabled | default(false)
+
+- name: Install platform backup script
+  ansible.builtin.template:
+    src: company-platform-backup.j2
+    dest: /usr/local/sbin/company-platform-backup
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Install backup cron entry
+  ansible.builtin.cron:
+    name: company-platform-backup
+    user: root
+    hour: "{{ backup_hour }}"
+    minute: "{{ backup_minute }}"
+    job: /usr/local/sbin/company-platform-backup >> /var/log/company-platform-backup.log 2>&1

@@ -1,0 +1,114 @@
+---
+- name: Create the first ERPNext site
+  hosts: all
+  become: true
+  vars_files:
+    - ../inventories/production/group_vars/all/vault.yml
+  tasks:
+    # This installed bench version has no "list-sites" command (it only
+    # exists on some frappe_docker/bench versions) — confirmed against a
+    # live site, where `bench list-sites` fails with "No such command".
+    # Checking for the site's own directory under sites/ is the same
+    # information "list-sites" would have given, without depending on a
+    # command that may or may not exist.
+    - name: Check whether the site already exists
+      ansible.builtin.command:
+        argv:
+          - docker
+          - compose
+          - --project-name
+          - "{{ erpnext_project_name }}"
+          - -f
+          - "{{ erpnext_root }}/generated/docker-compose.yml"
+          - exec
+          - -T
+          - backend
+          - test
+          - -d
+          - "sites/{{ erpnext_site_name }}"
+      register: erpnext_site_exists
+      failed_when: false
+      changed_when: false
+
+    - name: Create ERPNext site and install ERPNext
+      ansible.builtin.command:
+        argv:
+          - docker
+          - compose
+          - --project-name
+          - "{{ erpnext_project_name }}"
+          - -f
+          - "{{ erpnext_root }}/generated/docker-compose.yml"
+          - exec
+          - -T
+          - backend
+          - bench
+          - new-site
+          - "{{ erpnext_site_name }}"
+          - --db-root-password
+          - "{{ vault_erpnext_db_password }}"
+          - --admin-password
+          - "{{ vault_erpnext_admin_password }}"
+          - --install-app
+          - erpnext
+      no_log: true
+      when: erpnext_site_exists.rc != 0
+
+    - name: Run migrations
+      ansible.builtin.command:
+        argv:
+          - docker
+          - compose
+          - --project-name
+          - "{{ erpnext_project_name }}"
+          - -f
+          - "{{ erpnext_root }}/generated/docker-compose.yml"
+          - exec
+          - -T
+          - backend
+          - bench
+          - --site
+          - "{{ erpnext_site_name }}"
+          - migrate
+      changed_when: true
+
+    # `bench new-site` creates the site's MariaDB user bound to whatever IP
+    # the "backend" container happened to have at that moment (e.g.
+    # 'user'@'172.21.0.6'). That IP isn't stable — a Docker daemon restart,
+    # host reboot, or even just recreating the backend container can hand
+    # it a different address on the next start, at which point every DB
+    # query starts failing with "Access denied for user ... (using
+    # password: YES)" even though the password never changed. Confirmed on
+    # a live site after a `systemctl restart docker` for an unrelated DNS
+    # fix. Widening the grant to '%' is safe here because MariaDB is never
+    # reachable from outside the internal "src_default" Docker network.
+    - name: Read the site's db_name straight from site_config.json
+      ansible.builtin.command:
+        argv:
+          - docker
+          - compose
+          - --project-name
+          - "{{ erpnext_project_name }}"
+          - -f
+          - "{{ erpnext_root }}/generated/docker-compose.yml"
+          - exec
+          - -T
+          - backend
+          - cat
+          - "sites/{{ erpnext_site_name }}/site_config.json"
+      register: erpnext_site_config_json
+      changed_when: false
+      no_log: true
+
+    - name: Widen the site's DB user grant to any host (survives container IP changes)
+      ansible.builtin.shell: |
+        set -euo pipefail
+        docker compose --project-name "{{ erpnext_project_name }}" exec -T db mariadb -uroot -p"{{ vault_erpnext_db_password }}" -e "
+          UPDATE mysql.user SET host='%' WHERE user='{{ (erpnext_site_config_json.stdout | from_json).db_name }}' AND host != '%';
+          FLUSH PRIVILEGES;
+        "
+      args:
+        chdir: "{{ erpnext_root }}/generated"
+        executable: /bin/bash
+      no_log: true
+      changed_when: true

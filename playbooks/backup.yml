@@ -1,0 +1,8 @@
+---
+- name: Run an immediate backup
+  hosts: all
+  become: true
+  tasks:
+    - name: Execute platform backup script
+      ansible.builtin.command: /usr/local/sbin/company-platform-backup
+      changed_when: true

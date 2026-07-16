@@ -1,0 +1,6 @@
+---
+- name: Verify platform services
+  hosts: all
+  become: true
+  roles:
+    - verify

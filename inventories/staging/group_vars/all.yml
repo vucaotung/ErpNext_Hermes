@@ -1,0 +1,101 @@
+---
+# Staging mirrors production group_vars, with a separate domain/site and a
+# smaller footprint. Any change (version bump, new skill, new DocType) must
+# be applied here first and pass playbooks/verify.yml before going to
+# inventories/production.
+
+platform_timezone: Asia/Bangkok
+platform_root: /opt/apps
+platform_user: deploy
+platform_group: deploy
+
+erpnext_domain: erp-staging.example.com
+erpnext_site_name: erp-staging.example.com
+erpnext_project_name: company-erpnext-staging
+erpnext_version: v15.32.0
+frappe_docker_repo: https://github.com/frappe/frappe_docker.git
+frappe_docker_ref: v0.6.0
+erpnext_root: "{{ platform_root }}/erpnext"
+
+erpnext_custom_apps:
+  - name: hermes_ops
+    repo: "{{ platform_root }}/erpnext/custom-apps/hermes_ops"
+
+caddy_root: "{{ platform_root }}/proxy"
+caddy_email: admin@example.com
+
+hermes_root: "{{ platform_root }}/hermes"
+hermes_image: "ghcr.io/nousresearch/hermes-agent:2026.06.1"
+hermes_primary_provider: openrouter
+hermes_primary_model: deepseek/deepseek-chat
+hermes_fallback_provider: tencent-tokenhub
+hermes_fallback_model: hy3-preview
+
+bridge_root: "{{ platform_root }}/integration/erpnext-bridge"
+bridge_image: company/erpnext-bridge:0.1.0
+bridge_internal_port: 8642
+bridge_erpnext_base_url: "http://erpnext-frontend:8080"
+bridge_rate_limit_per_minute: 60
+
+telegram_company_group_id: "-1000000000001"
+telegram_admin_user_ids:
+  - "111111111"
+telegram_staff_user_ids:
+  - "222222222"
+
+hermes_profiles:
+  - name: ops-admin
+    telegram_bot_token_var: vault_telegram_ops_bot_token_staging
+    erpnext_api_user: hermes-ops@company.local
+    erpnext_api_key_var: vault_erpnext_ops_api_key
+    erpnext_api_secret_var: vault_erpnext_ops_api_secret
+    allowed_users: "{{ telegram_admin_user_ids }}"
+    admin_users: "{{ telegram_admin_user_ids }}"
+    group_allowed_chats:
+      - "{{ telegram_company_group_id }}"
+    group_admin_users: "{{ telegram_admin_user_ids }}"
+    user_allowed_commands: [help, whoami, status, history]
+  - name: staff-work
+    telegram_bot_token_var: vault_telegram_staff_bot_token_staging
+    erpnext_api_user: hermes-staff@company.local
+    erpnext_api_key_var: vault_erpnext_staff_api_key
+    erpnext_api_secret_var: vault_erpnext_staff_api_secret
+    allowed_users: "{{ telegram_staff_user_ids }}"
+    admin_users: []
+    group_allowed_chats:
+      - "{{ telegram_company_group_id }}"
+    group_admin_users: "{{ telegram_admin_user_ids }}"
+    user_allowed_commands: [help, whoami, status, history]
+  - name: sales-crm
+    enabled: false
+    telegram_bot_token_var: vault_telegram_sales_bot_token_staging
+    erpnext_api_user: hermes-sales@company.local
+    allowed_users: []
+    admin_users: []
+    group_allowed_chats: []
+    group_admin_users: []
+    user_allowed_commands: []
+  - name: system-maintainer
+    enabled: false
+    telegram_bot_token_var: ""
+    erpnext_api_user: ""
+    allowed_users: []
+    admin_users: []
+    group_allowed_chats: []
+    group_admin_users: []
+    user_allowed_commands: []
+
+backup_root: /opt/backups/company-platform-staging
+backup_retention_days: 7
+backup_retention_weeks: 4
+backup_retention_months: 1
+backup_hour: "23"
+backup_minute: "40"
+backup_offsite_enabled: false
+backup_offsite_remote: "company-offsite:erpnext-backups-staging"
+
+monitoring_health_check_hour: "07"
+monitoring_health_check_minute: "45"
+monitoring_alert_chat_id: "{{ telegram_company_group_id }}"
+
+firewall_ssh_port: 22

@@ -1,0 +1,25 @@
+services:
+{% for profile in hermes_profiles if profile.enabled | default(true) %}
+  hermes-{{ profile.name }}:
+    image: {{ hermes_image }}
+    container_name: hermes-{{ profile.name }}
+    restart: unless-stopped
+    command: gateway run
+    env_file:
+      - ./{{ profile.name }}/.env
+    environment:
+      HERMES_HOME: /opt/data
+    volumes:
+      - ./{{ profile.name }}/data:/opt/data
+    networks:
+      - platform-internal
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "1.5"
+{% endfor %}
+
+networks:
+  platform-internal:
+    external: true

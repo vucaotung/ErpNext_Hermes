@@ -1,0 +1,12 @@
+{
+  "type": "object",
+  "properties": {
+    "subject": {"type": "string"},
+    "project": {"type": "string"},
+    "expected_end_date": {"type": "string"},
+    "description": {"type": "string"},
+    "idempotency_key": {"type": "string"}
+  },
+  "required": ["subject", "idempotency_key"],
+  "additionalProperties": false
+}

@@ -1,0 +1,1 @@
+{"type": "object", "properties": {"summary": {"type": "string"}, "completed_count": {"type": "integer"}, "blocked_count": {"type": "integer"}}, "required": ["summary"]}

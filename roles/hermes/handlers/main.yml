@@ -1,0 +1,6 @@
+---
+- name: Restart Hermes
+  community.docker.docker_compose_v2:
+    project_src: "{{ hermes_root }}"
+    state: restarted
+    remove_orphans: true

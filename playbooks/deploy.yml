@@ -1,0 +1,12 @@
+---
+- name: Deploy ERPNext, Caddy, Hermes and the ERPNext API Bridge
+  hosts: all
+  become: true
+  roles:
+    - erpnext-app
+    - erpnext
+    - erpnext-bridge
+    - caddy
+    - hermes
+    - backup
+    - monitoring

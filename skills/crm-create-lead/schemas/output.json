@@ -1,0 +1,1 @@
+{"type": "object", "properties": {"lead_id": {"type": "string"}, "lead_name": {"type": "string"}}, "required": ["lead_id"]}

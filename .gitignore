@@ -1,0 +1,14 @@
+# Secrets — never commit
+*.env
+.env
+inventories/*/group_vars/vault.yml
+generated-secrets-*.txt
+
+# Python / Ansible runtime
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Editors / OS
+.DS_Store

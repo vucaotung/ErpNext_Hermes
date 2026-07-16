@@ -1,0 +1,3 @@
+name: erpnext-identity
+version: "1.0"
+description: Registers /link and /mytasks commands for ERPNext identity linking

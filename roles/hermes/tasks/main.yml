@@ -1,0 +1,57 @@
+---
+- name: Create Hermes root directory
+  ansible.builtin.file:
+    path: "{{ hermes_root }}"
+    state: directory
+    owner: "{{ platform_user }}"
+    group: "{{ platform_group }}"
+    mode: "0750"
+
+- name: Create directories for enabled Hermes profiles
+  ansible.builtin.file:
+    path: "{{ hermes_root }}/{{ item.name }}/data"
+    state: directory
+    owner: "{{ platform_user }}"
+    group: "{{ platform_group }}"
+    mode: "0700"
+  loop: "{{ hermes_profiles }}"
+  when: item.enabled | default(true)
+
+- name: Render Hermes profile environment files
+  ansible.builtin.template:
+    src: profile.env.j2
+    dest: "{{ hermes_root }}/{{ item.name }}/.env"
+    owner: root
+    group: root
+    mode: "0600"
+  loop: "{{ hermes_profiles }}"
+  when: item.enabled | default(true)
+  no_log: true
+  notify: Restart Hermes
+
+- name: Render Hermes profile configuration
+  ansible.builtin.template:
+    src: config.yaml.j2
+    dest: "{{ hermes_root }}/{{ item.name }}/data/config.yaml"
+    owner: "{{ platform_user }}"
+    group: "{{ platform_group }}"
+    mode: "0600"
+  loop: "{{ hermes_profiles }}"
+  when: item.enabled | default(true)
+  notify: Restart Hermes
+
+- name: Render Hermes multi-profile Compose file
+  ansible.builtin.template:
+    src: compose.yaml.j2
+    dest: "{{ hermes_root }}/compose.yaml"
+    owner: "{{ platform_user }}"
+    group: "{{ platform_group }}"
+    mode: "0640"
+  notify: Restart Hermes
+
+- name: Start Hermes gateways
+  community.docker.docker_compose_v2:
+    project_src: "{{ hermes_root }}"
+    state: present
+    pull: missing
+    remove_orphans: true

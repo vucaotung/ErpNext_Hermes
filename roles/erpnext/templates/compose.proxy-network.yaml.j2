@@ -1,0 +1,11 @@
+services:
+  frontend:
+    networks:
+      default: {}
+      proxy-net:
+        aliases:
+          - erpnext-frontend
+
+networks:
+  proxy-net:
+    external: true

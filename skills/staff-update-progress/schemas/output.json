@@ -1,0 +1,10 @@
+{
+  "type": "object",
+  "properties": {
+    "task_id": {"type": "string"},
+    "old_progress": {"type": ["number", "null"]},
+    "new_progress": {"type": "number"},
+    "updated_at": {"type": "string"}
+  },
+  "required": ["task_id", "new_progress"]
+}

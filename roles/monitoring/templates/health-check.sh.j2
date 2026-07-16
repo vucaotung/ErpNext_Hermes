@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# Script-only health check (mục 11.4) — no LLM call, runs at
+# {{ monitoring_health_check_hour }}:{{ monitoring_health_check_minute }} daily.
+# Sends a Telegram message to the ops group only when something is wrong,
+# so it doesn't add daily noise on a healthy day.
+set -Eeuo pipefail
+
+FAILURES=""
+
+add_failure() {
+  FAILURES="${FAILURES}
+- $1"
+}
+
+# 1. ERPNext HTTPS endpoint
+if ! curl -fsS -o /dev/null -m 10 "https://{{ erpnext_domain }}"; then
+  add_failure "ERPNext HTTPS endpoint (https://{{ erpnext_domain }}) not responding"
+fi
+
+# 2. Containers that must be running
+DOCKER_FMT='{{ '{{' }}.State.Running{{ '}}' }}'
+
+for c in company-caddy erpnext-bridge; do
+  if [ "$(docker inspect -f "$DOCKER_FMT" "$c" 2>/dev/null || echo false)" != "true" ]; then
+    add_failure "Container $c is not running"
+  fi
+done
+
+{% for profile in hermes_profiles if profile.enabled | default(true) %}
+if [ "$(docker inspect -f "$DOCKER_FMT" "hermes-{{ profile.name }}" 2>/dev/null || echo false)" != "true" ]; then
+  add_failure "Container hermes-{{ profile.name }} is not running"
+fi
+{% endfor %}
+
+# 3. Disk space on the backup root and platform root
+for path in "{{ platform_root }}" "{{ backup_root }}"; do
+  usage=$(df -P "$path" | tail -1 | awk '{print $5}' | tr -d '%')
+  if [ "$usage" -ge 90 ]; then
+    add_failure "Disk usage at $path is ${usage}%"
+  fi
+done
+
+# 4. Last backup ran within the last 26 hours
+latest_backup=$(find "{{ backup_root }}" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f1)
+if [ -z "${latest_backup:-}" ]; then
+  add_failure "No backup found under {{ backup_root }}"
+else
+  now=$(date +%s)
+  age_hours=$(( (now - ${latest_backup%.*}) / 3600 ))
+  if [ "$age_hours" -gt 26 ]; then
+    add_failure "Last backup is ${age_hours}h old (expected roughly daily)"
+  fi
+fi
+
+if [ -n "$FAILURES" ]; then
+  MESSAGE="⚠️ Health check failed on $(hostname):${FAILURES}"
+  curl -fsS -X POST "https://api.telegram.org/bot{{ vault_telegram_ops_bot_token }}/sendMessage" \
+    -d "chat_id={{ monitoring_alert_chat_id }}" \
+    -d "message_thread_id={{ monitoring_operations_topic_id | default('') }}" \
+    --data-urlencode "text=${MESSAGE}" >/dev/null || true
+  exit 1
+fi
+
+exit 0

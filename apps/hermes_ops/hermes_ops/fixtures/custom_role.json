@@ -1,0 +1,37 @@
+[
+ {
+  "doctype": "Role",
+  "name": "Hermes Ops Admin",
+  "role_name": "Hermes Ops Admin",
+  "desk_access": 0,
+  "description": "Scope for the ops-admin Hermes profile: read project/task/CRM company-wide, create project/task/lead/quotation draft, submit AI Approval Requests. No delete, no financial submit (mục 6.1)."
+ },
+ {
+  "doctype": "Role",
+  "name": "Hermes Staff",
+  "role_name": "Hermes Staff",
+  "desk_access": 0,
+  "description": "Scope for the staff-work Hermes profile: read/update only the current user's own tasks and permitted projects (mục 6.2)."
+ },
+ {
+  "doctype": "Role",
+  "name": "Hermes Sales",
+  "role_name": "Hermes Sales",
+  "desk_access": 0,
+  "description": "Scope for the sales-crm Hermes profile: leads/opportunities assigned to the user, quotation drafts, no HR data (mục 6.3)."
+ },
+ {
+  "doctype": "Role",
+  "name": "Hermes Director",
+  "role_name": "Hermes Director",
+  "desk_access": 1,
+  "description": "L1 — giám đốc công ty. Real human, dashboard access. Scoped to their own Company via a User Permission row (not this fixture — created per-person at provisioning time). Sees/assigns Project+Task company-wide within that Company."
+ },
+ {
+  "doctype": "Role",
+  "name": "Hermes Team Lead",
+  "role_name": "Hermes Team Lead",
+  "desk_access": 1,
+  "description": "L2 — trưởng nhóm. Real human, dashboard access. Scoped to their own Department via a User Permission row (not this fixture — created per-person at provisioning time). Assigns Task to L3 staff within that Department."
+ }
+]

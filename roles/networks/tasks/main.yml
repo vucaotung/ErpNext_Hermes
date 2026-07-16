@@ -1,0 +1,10 @@
+---
+- name: Create reverse-proxy Docker network
+  community.docker.docker_network:
+    name: proxy-net
+    state: present
+
+- name: Create integration Docker network with outbound access
+  community.docker.docker_network:
+    name: platform-internal
+    state: present

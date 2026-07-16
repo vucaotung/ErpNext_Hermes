@@ -1,0 +1,49 @@
+---
+- name: Wait for ERPNext HTTPS endpoint
+  ansible.builtin.uri:
+    url: "https://{{ erpnext_domain }}"
+    method: GET
+    status_code:
+      - 200
+      - 302
+      - 404
+    validate_certs: true
+  register: erpnext_http
+  retries: 12
+  delay: 10
+  until: erpnext_http.status in [200, 302, 404]
+
+- name: Check ERPNext Compose services
+  ansible.builtin.command:
+    argv:
+      - docker
+      - compose
+      - --project-name
+      - "{{ erpnext_project_name }}"
+      - -f
+      - "{{ erpnext_root }}/generated/docker-compose.yml"
+      - ps
+      - --format
+      - json
+  register: erpnext_ps
+  changed_when: false
+
+- name: Check Hermes gateway containers
+  ansible.builtin.command:
+    argv:
+      - docker
+      - compose
+      - -f
+      - "{{ hermes_root }}/compose.yaml"
+      - ps
+      - --format
+      - json
+  register: hermes_ps
+  changed_when: false
+
+- name: Display verification summary
+  ansible.builtin.debug:
+    msg:
+      - "ERPNext endpoint status: {{ erpnext_http.status }}"
+      - "ERPNext containers: {{ erpnext_ps.stdout }}"
+      - "Hermes containers: {{ hermes_ps.stdout }}"

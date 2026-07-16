@@ -1,0 +1,1 @@
+{"type": "object", "properties": {"overdue_count": {"type": "integer"}, "pipeline_summary": {"type": "string"}, "report_text": {"type": "string"}}, "required": ["report_text"]}

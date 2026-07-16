@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+umask 077
+
+STAMP="$(date +%Y%m%d-%H%M%S)"
+DAILY_ROOT="{{ backup_root }}/daily"
+WEEKLY_ROOT="{{ backup_root }}/weekly"
+MONTHLY_ROOT="{{ backup_root }}/monthly"
+TARGET="${DAILY_ROOT}/${STAMP}"
+mkdir -p "${TARGET}" "${WEEKLY_ROOT}" "${MONTHLY_ROOT}"
+
+docker compose \
+  --project-name "{{ erpnext_project_name }}" \
+  -f "{{ erpnext_root }}/generated/docker-compose.yml" \
+  exec -T backend \
+  bench --site "{{ erpnext_site_name }}" backup --with-files
+
+docker compose \
+  --project-name "{{ erpnext_project_name }}" \
+  -f "{{ erpnext_root }}/generated/docker-compose.yml" \
+  exec -T backend \
+  sh -lc 'tar -C /home/frappe/frappe-bench/sites -czf - "{{ erpnext_site_name }}/private/backups"' \
+  > "${TARGET}/erpnext-site-backups.tar.gz"
+
+tar -C "{{ hermes_root }}" -czf "${TARGET}/hermes-profiles.tar.gz" \
+  {% for profile in hermes_profiles if profile.enabled | default(true) %}"{{ profile.name }}/data" {% endfor %}
+
+tar -C "{{ bridge_root }}" -czf "${TARGET}/erpnext-bridge-data.tar.gz" data
+
+cp "{{ erpnext_root }}/generated/docker-compose.yml" "${TARGET}/erpnext-docker-compose.yml"
+cp "{{ caddy_root }}/Caddyfile" "${TARGET}/Caddyfile"
+
+echo "Local backup complete: ${TARGET}"
+
+# --- Retention tiers (mục 13.2): 14 daily / 8 weekly / 6 monthly ---------
+
+# Sunday (day 7) -> promote into weekly tier.
+if [ "$(date +%u)" = "7" ]; then
+  cp -a "${TARGET}" "${WEEKLY_ROOT}/${STAMP}"
+fi
+
+# 1st of the month -> promote into monthly tier.
+if [ "$(date +%d)" = "01" ]; then
+  cp -a "${TARGET}" "${MONTHLY_ROOT}/${STAMP}"
+fi
+
+find "${DAILY_ROOT}"   -mindepth 1 -maxdepth 1 -type d -mtime +{{ backup_retention_days }}          -exec rm -rf {} +
+find "${WEEKLY_ROOT}"  -mindepth 1 -maxdepth 1 -type d -mtime +$(( {{ backup_retention_weeks }} * 7 ))  -exec rm -rf {} +
+find "${MONTHLY_ROOT}" -mindepth 1 -maxdepth 1 -type d -mtime +$(( {{ backup_retention_months }} * 31 )) -exec rm -rf {} +
+
+# --- Off-site sync (mục 13.3) --------------------------------------------
+{% if backup_offsite_enabled %}
+if command -v rclone >/dev/null 2>&1; then
+  rclone sync "${TARGET}" "{{ backup_offsite_remote }}/daily/${STAMP}" \
+    --config /etc/company-platform/rclone.conf --log-level ERROR \
+    || echo "WARNING: off-site sync failed for ${STAMP}" >&2
+else
+  echo "WARNING: rclone not installed, skipping off-site sync" >&2
+fi
+{% else %}
+echo "Off-site sync disabled for this environment (backup_offsite_enabled: false)"
+{% endif %}
+
+echo "Backup complete: ${TARGET}"

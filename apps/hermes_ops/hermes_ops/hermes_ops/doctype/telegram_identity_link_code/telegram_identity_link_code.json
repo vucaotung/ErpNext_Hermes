@@ -1,0 +1,59 @@
+{
+ "doctype": "DocType",
+ "name": "Telegram Identity Link Code",
+ "module": "Hermes Ops",
+ "custom": 0,
+ "istable": 0,
+ "naming_rule": "Random",
+ "fields": [
+  {
+   "fieldname": "erpnext_user",
+   "label": "ERPNext User",
+   "fieldtype": "Link",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "allowed_profile",
+   "label": "Allowed Hermes Profile",
+   "fieldtype": "Select",
+   "options": "ops-admin\nstaff-work\nsales-crm",
+   "reqd": 1
+  },
+  {
+   "fieldname": "code_hash",
+   "label": "Code Hash",
+   "fieldtype": "Data",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "expires_at",
+   "label": "Expires At",
+   "fieldtype": "Datetime",
+   "reqd": 1
+  },
+  {
+   "fieldname": "used",
+   "label": "Used",
+   "fieldtype": "Check",
+   "default": "0"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  },
+  {
+   "role": "Hermes Ops Admin",
+   "read": 1,
+   "write": 0,
+   "create": 1,
+   "delete": 0
+  }
+ ]
+}

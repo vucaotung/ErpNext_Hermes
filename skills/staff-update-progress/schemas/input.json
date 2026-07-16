@@ -1,0 +1,10 @@
+{
+  "type": "object",
+  "properties": {
+    "task_id": {"type": "string"},
+    "progress": {"type": "integer", "minimum": 0, "maximum": 100},
+    "idempotency_key": {"type": "string"}
+  },
+  "required": ["task_id", "progress", "idempotency_key"],
+  "additionalProperties": false
+}

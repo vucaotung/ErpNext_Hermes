@@ -1,0 +1,17 @@
+---
+- name: Install health-check script
+  ansible.builtin.template:
+    src: health-check.sh.j2
+    dest: /usr/local/sbin/company-platform-health-check
+    owner: root
+    group: root
+    mode: "0750"
+  no_log: true
+
+- name: Install health-check cron entry
+  ansible.builtin.cron:
+    name: company-platform-health-check
+    user: root
+    hour: "{{ monitoring_health_check_hour }}"
+    minute: "{{ monitoring_health_check_minute }}"
+    job: /usr/local/sbin/company-platform-health-check >> /var/log/company-platform-health-check.log 2>&1
