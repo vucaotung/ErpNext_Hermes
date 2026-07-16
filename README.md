@@ -16,6 +16,11 @@ Triển khai bằng Ansible lên 1 VPS, có staging/production tách biệt.
   các lần cập nhật, và trạng thái từng hạng mục.
 - [`docs/OPERATIONS.md`](docs/OPERATIONS.md) — runbook vận hành ngắn (logs,
   backup, update, review bundle hằng tháng).
+- [`docs/So_tay_su_dung_he_thong.docx`](docs/So_tay_su_dung_he_thong.docx) —
+  sổ tay sử dụng dành cho người dùng cuối L1/L2/L3 (đăng ký, đăng nhập, dùng
+  ERPNext web, dùng bot Telegram).
+- [`docs/archive/`](docs/archive/) — kế hoạch triển khai gốc (PDF) và báo
+  cáo đối chiếu lịch sử (giữ để tham khảo, không phải trạng thái mới nhất).
 - [`CHANGELOG.md`](CHANGELOG.md) — lịch sử thay đổi theo mốc.
 
 ## Kiến trúc tóm tắt
@@ -89,7 +94,8 @@ pytest tests/ -v
   production tiếp theo.
 - Pilot thật với người dùng thật (Phase 9 kế hoạch gốc) chưa bắt đầu.
 
-Xem toàn bộ backlog + issue đang mở tại tab **Issues** của repo này.
+Xem toàn bộ backlog + issue đang mở tại tab **Issues** của repo này:
+https://github.com/vucaotung/ErpNext_Hermes/issues
 
 ## Đóng góp / báo lỗi
 
