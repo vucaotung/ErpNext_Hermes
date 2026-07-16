@@ -19,6 +19,14 @@ telegram:
   exclusive_bot_mentions: true
   observe_unmentioned_group_messages: false
 
+{% if item.plugins | default([]) | length > 0 %}
+plugins:
+  enabled:
+{% for plugin in item.plugins %}
+    - {{ plugin }}
+{% endfor %}
+{% endif %}
+
 gateway:
   platforms:
     telegram:

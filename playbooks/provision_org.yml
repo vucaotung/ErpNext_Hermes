@@ -1,0 +1,75 @@
+---
+# Provisions L1 (Hermes Director) and L2 (Hermes Team Lead) dashboard users
+# from a roster variable, instead of the manual `bench execute
+# hermes_ops.provisioning.provision_director/...` SSH steps used the first
+# time this was set up (see PROJECT_HANDBOOK.md section 4/8.0). Run once
+# after playbooks/provision_erpnext.yml and after apps/hermes_ops has been
+# migrated with the "Hermes Director"/"Hermes Team Lead" roles installed.
+#
+# Define the roster in group_vars, e.g.:
+#
+#   hermes_org_people:
+#     - email: director@company.local
+#       full_name: "Nguyen Van A"
+#       role: director        # -> provision_director(email, full_name, company)
+#       scope: "Ten Cong Ty"  # must be an existing Company
+#     - email: leadops@company.local
+#       full_name: "Tran Thi B"
+#       role: team_lead       # -> provision_team_lead(email, full_name, department)
+#       scope: "Operations"   # must be an existing Department
+#
+# Each person gets a welcome email (Frappe's send_welcome_email=1, see
+# hermes_ops.provisioning._ensure_human_user) so they can set their own
+# dashboard password — nothing here is written to a generated-secrets file,
+# unlike provision_erpnext.yml, because no API key/secret is issued to
+# humans (mục 6.4 — Directors/Team Leads act through the shared ops-admin
+# bot after /link, same as everyone else).
+
+- name: Provision L1/L2 ERPNext dashboard users from the org roster
+  hosts: all
+  become: true
+  vars:
+    hermes_org_people: []
+    role_function_map:
+      director: hermes_ops.provisioning.provision_director
+      team_lead: hermes_ops.provisioning.provision_team_lead
+  tasks:
+    - name: Fail fast on an unknown role value in the roster
+      ansible.builtin.fail:
+        msg: >-
+          hermes_org_people entry for {{ item.email }} has role
+          "{{ item.role }}" — must be "director" or "team_lead".
+      loop: "{{ hermes_org_people }}"
+      loop_control:
+        label: "{{ item.email }}"
+      when: item.role not in role_function_map
+
+    - name: Provision each person in the roster
+      ansible.builtin.command:
+        argv:
+          - docker
+          - compose
+          - --project-name
+          - "{{ erpnext_project_name }}"
+          - -f
+          - "{{ erpnext_root }}/generated/docker-compose.yml"
+          - exec
+          - -T
+          - backend
+          - bench
+          - --site
+          - "{{ erpnext_site_name }}"
+          - execute
+          - "{{ role_function_map[item.role] }}"
+          - --args
+          - "{{ [item.email, item.full_name, item.scope] | to_json }}"
+      register: provision_org_result
+      changed_when: true
+      loop: "{{ hermes_org_people }}"
+      loop_control:
+        label: "{{ item.email }} ({{ item.role }})"
+
+    - name: Show result for each person
+      ansible.builtin.debug:
+        var: provision_org_result.results
+      when: provision_org_result is defined and hermes_org_people | length > 0

@@ -1,5 +1,22 @@
 ---
-- name: Create Hermes root directory
+# Hermes runs bare-metal on the host, NOT via Docker Compose. This role used
+# to assume a Docker deployment (see git history / compose.yaml.j2, removed
+# 2026-07-16) but that never matched the real VPS: Hermes is installed via
+# its own installer into a venv at {{ hermes_venv_root }}, and each profile
+# is its own long-running "gateway run" process. Confirmed live on
+# 173.249.51.69 by inspecting the actual running processes before writing
+# this role - do not reintroduce a Docker-based template here without
+# re-verifying against a real deployment first.
+#
+# This role does NOT install Hermes itself (the binary/venv). That is a
+# manual, one-time prerequisite - see docs/OPERATIONS.md. The live install
+# reports "Install method: git" with a locally carried commit on top of
+# upstream (hermes --version), which this role has no way to reproduce
+# safely without knowing what that patch contains; automating it here would
+# risk silently overwriting a deliberate local fix. Treat "Hermes is
+# installed and hermes --version works" as a precondition of this role.
+
+- name: Create Hermes env-file root directory
   ansible.builtin.file:
     path: "{{ hermes_root }}"
     state: directory
@@ -7,14 +24,28 @@
     group: "{{ platform_group }}"
     mode: "0750"
 
-- name: Create directories for enabled Hermes profiles
+- name: Create HERMES_HOME state directory for each enabled profile
   ansible.builtin.file:
-    path: "{{ hermes_root }}/{{ item.name }}/data"
+    path: "{{ hermes_state_root }}/{{ item.name }}"
     state: directory
-    owner: "{{ platform_user }}"
-    group: "{{ platform_group }}"
+    owner: root
+    group: root
     mode: "0700"
   loop: "{{ hermes_profiles }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.enabled | default(true)
+
+- name: Create per-profile env-file directory
+  ansible.builtin.file:
+    path: "{{ hermes_root }}/{{ item.name }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+  loop: "{{ hermes_profiles }}"
+  loop_control:
+    label: "{{ item.name }}"
   when: item.enabled | default(true)
 
 - name: Render Hermes profile environment files
@@ -25,33 +56,86 @@
     group: root
     mode: "0600"
   loop: "{{ hermes_profiles }}"
+  loop_control:
+    label: "{{ item.name }}"
   when: item.enabled | default(true)
   no_log: true
-  notify: Restart Hermes
+  notify: Restart Hermes profiles
 
 - name: Render Hermes profile configuration
   ansible.builtin.template:
     src: config.yaml.j2
-    dest: "{{ hermes_root }}/{{ item.name }}/data/config.yaml"
-    owner: "{{ platform_user }}"
-    group: "{{ platform_group }}"
+    dest: "{{ hermes_state_root }}/{{ item.name }}/config.yaml"
+    owner: root
+    group: root
     mode: "0600"
   loop: "{{ hermes_profiles }}"
+  loop_control:
+    label: "{{ item.name }}"
   when: item.enabled | default(true)
-  notify: Restart Hermes
+  notify: Restart Hermes profiles
 
-- name: Render Hermes multi-profile Compose file
+- name: Check for extra plugin/hook/cron files shipped for this profile
+  ansible.builtin.stat:
+    path: "{{ role_path }}/files/profiles/{{ item.name }}"
+  loop: "{{ hermes_profiles }}"
+  loop_control:
+    label: "{{ item.name }}"
+    loop_var: item
+  delegate_to: localhost
+  become: false
+  register: hermes_profile_files_stat
+  when: item.enabled | default(true)
+
+- name: Copy profile-specific plugins/hooks/scripts (erpnext-identity, cron jobs, etc.)
+  ansible.posix.synchronize:
+    src: "{{ role_path }}/files/profiles/{{ item.item.name }}/"
+    dest: "{{ hermes_state_root }}/{{ item.item.name }}/"
+    recursive: true
+    rsync_opts:
+      - "--exclude=__pycache__"
+      - "--exclude=*.pyc"
+  loop: "{{ hermes_profile_files_stat.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when: item.stat.exists | default(false)
+  notify: Restart Hermes profiles
+
+- name: Render per-profile systemd unit
   ansible.builtin.template:
-    src: compose.yaml.j2
-    dest: "{{ hermes_root }}/compose.yaml"
-    owner: "{{ platform_user }}"
-    group: "{{ platform_group }}"
-    mode: "0640"
-  notify: Restart Hermes
+    src: hermes-gateway.service.j2
+    dest: "/etc/systemd/system/hermes-gateway-{{ item.name }}.service"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ hermes_profiles }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.enabled | default(true)
+  register: hermes_unit_files
+  notify: Reload systemd
 
-- name: Start Hermes gateways
-  community.docker.docker_compose_v2:
-    project_src: "{{ hermes_root }}"
-    state: present
-    pull: missing
-    remove_orphans: true
+- name: Flush handlers so unit changes are picked up before enabling
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable and start each Hermes profile gateway
+  ansible.builtin.systemd:
+    name: "hermes-gateway-{{ item.name }}.service"
+    enabled: true
+    state: started
+    daemon_reload: true
+  loop: "{{ hermes_profiles }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.enabled | default(true)
+
+- name: Disable/stop gateway units for profiles that are no longer enabled
+  ansible.builtin.systemd:
+    name: "hermes-gateway-{{ item.name }}.service"
+    enabled: false
+    state: stopped
+  loop: "{{ hermes_profiles }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: not (item.enabled | default(true))
+  failed_when: false

@@ -1,6 +1,18 @@
 ---
-- name: Restart Hermes
-  community.docker.docker_compose_v2:
-    project_src: "{{ hermes_root }}"
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Restart Hermes profiles
+  ansible.builtin.systemd:
+    name: "hermes-gateway-{{ item.name }}.service"
     state: restarted
-    remove_orphans: true
+    # --replace in the unit's ExecStart (hermes-gateway.service.j2) is what
+    # makes this safe: without it, the new process refuses to start because
+    # the old one hasn't released its gateway.pid/gateway.lock yet, and the
+    # unit flaps in a restart loop (confirmed live - see the comment in
+    # the unit template).
+  loop: "{{ hermes_profiles }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.enabled | default(true)

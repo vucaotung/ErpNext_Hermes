@@ -4,12 +4,16 @@ platform_root: /opt/apps
 platform_user: deploy
 platform_group: deploy
 
-erpnext_domain: erp.example.com
-erpnext_site_name: erp.example.com
+erpnext_domain: erp.enterpriseos.bond
+erpnext_site_name: erp.enterpriseos.bond
 erpnext_project_name: company-erpnext
-# Pinned versions — do NOT use "main"/"latest" in production.
+# Pinned versions - do NOT use "main"/"latest" in production.
 # Verify these tags exist and have been tested on staging before every deploy.
-erpnext_version: v15.32.0
+# erpnext_version confirmed 2026-07-16 via `docker inspect
+# company-erpnext-backend-1 --format '{{.Config.Image}}'` against the live
+# VPS (173.249.51.69) - it had drifted ahead of this file's previous pin
+# (v15.32.0) without the repo being updated to match.
+erpnext_version: v15.98.1
 frappe_docker_repo: https://github.com/frappe/frappe_docker.git
 frappe_docker_ref: v0.6.0
 erpnext_root: "{{ platform_root }}/erpnext"
@@ -24,19 +28,50 @@ caddy_root: "{{ platform_root }}/proxy"
 caddy_email: admin@example.com
 
 hermes_root: "{{ platform_root }}/hermes"
-hermes_image: "ghcr.io/nousresearch/hermes-agent:2026.06.1"
+# Hermes runs bare-metal on the host (NOT Docker - confirmed live 2026-07-16:
+# `docker images` has no hermes-agent image at all; the real processes are
+# `/usr/local/lib/hermes-agent/venv/bin/python -m hermes_cli.main --profile
+# <name> gateway run`, one per profile, each under its own systemd unit -
+# see roles/hermes/templates/hermes-gateway.service.j2). The previous
+# `hermes_image` variable described a Docker deployment this role never
+# actually used in production; removed to stop the repo lying about its own
+# architecture.
+#
+# This role does NOT install the Hermes binary/venv itself - that remains a
+# manual prerequisite (see docs/OPERATIONS.md and roles/hermes/tasks/main.yml
+# top-of-file comment). The live install is version-pinned informationally
+# only: `hermes --version` reports "v0.18.2 (2026.7.7.2) - upstream
+# f8b6d381 - local 48788032 (+1 carried commit)" - i.e. one local patch on
+# top of upstream that this repo has no record of. Before reinstalling
+# Hermes from scratch anywhere, find out what that carried commit changes.
+hermes_venv_python: /usr/local/lib/hermes-agent/venv/bin/python
+hermes_state_root: /root/.hermes/profiles
 hermes_primary_provider: openrouter
 hermes_primary_model: deepseek/deepseek-chat
 hermes_fallback_provider: tencent-tokenhub
 hermes_fallback_model: hy3-preview
 
-# ERPNext API Bridge (Phase 6) — the only thing allowed to touch ERPNext REST API.
+# ERPNext API Bridge (Phase 6) - the only thing allowed to touch ERPNext REST API.
 bridge_root: "{{ platform_root }}/integration/erpnext-bridge"
 bridge_image: company/erpnext-bridge:0.1.0
 bridge_internal_port: 8642
 bridge_erpnext_base_url: "http://erpnext-frontend:8080"
 bridge_rate_limit_per_minute: 60
 
+# Confirmed 2026-07-16 against the live VPS .env files
+# (/opt/apps/hermes/{ops-admin,staff-work}/.env): these are STILL the
+# template's placeholder values in production, not real Telegram IDs - this
+# was never a "sync gap" between repo and VPS, both are equally wrong. The
+# bots currently work anyway for whoever has gone through /link, which
+# suggests allow_from/group_allowed_chats aren't the operative gate for
+# individual identity any more now that Telegram Identity linking exists -
+# but that hasn't been verified end-to-end, and until real IDs are filled in
+# here, telegram_admin_user_ids/telegram_staff_user_ids below grant admin
+# command access (muc 6, config.yaml.j2 allow_admin_from) to a Telegram
+# account that doesn't exist, i.e. to nobody, rather than to anyone real.
+# Get Tung's and each real admin's numeric Telegram user ID (not @username -
+# message @userinfobot from that account) and the real company group's
+# negative chat ID before the next deploy.
 telegram_company_group_id: "-1000000000000"
 telegram_admin_user_ids:
   - "111111111"
@@ -60,6 +95,12 @@ hermes_profiles:
       - whoami
       - status
       - history
+    # Confirmed live 2026-07-16: enables /link and /assign via the
+    # erpnext-identity Hermes plugin + link-command/assign-command gateway
+    # hooks (roles/hermes/files/profiles/ops-admin/{plugins,hooks}/). See
+    # PROJECT_HANDBOOK.md section 7 for the full L0-L3 permission model.
+    plugins:
+      - erpnext-identity
   - name: staff-work
     telegram_bot_token_var: vault_telegram_staff_bot_token
     erpnext_api_user: hermes-staff@company.local
@@ -75,6 +116,11 @@ hermes_profiles:
       - whoami
       - status
       - history
+    # Confirmed live 2026-07-16: enables /link and /mytasks via the
+    # erpnext-identity Hermes plugin + link-command/mytasks-command gateway
+    # hooks (roles/hermes/files/profiles/staff-work/{plugins,hooks}/).
+    plugins:
+      - erpnext-identity
   - name: sales-crm
     enabled: false
     telegram_bot_token_var: vault_telegram_sales_bot_token
@@ -103,6 +149,12 @@ hermes_profiles:
     group_allowed_chats: []
     group_admin_users: []
     user_allowed_commands: []
+
+# L1 (Hermes Director) / L2 (Hermes Team Lead) dashboard-user roster, read by
+# playbooks/provision_org.yml. Empty by default - fill in real people before
+# running that playbook. See playbooks/provision_org.yml for the field
+# reference and an example entry.
+hermes_org_people: []
 
 # Local backup + off-site sync (rclone). Configure a remote in
 # roles/backup/templates/rclone.conf.j2 (values come from Vault).

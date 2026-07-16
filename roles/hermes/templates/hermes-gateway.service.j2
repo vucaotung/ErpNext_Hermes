@@ -1,0 +1,26 @@
+[Unit]
+Description=Hermes Agent gateway - profile {{ item.name }}
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root
+Environment="HERMES_HOME={{ hermes_state_root }}/{{ item.name }}"
+EnvironmentFile={{ hermes_root }}/{{ item.name }}/.env
+# --replace is required under systemd: `hermes gateway run` refuses to start
+# a second dispatcher against the same profile state by default (to avoid
+# two processes corrupting shared gateway state) — but that same guard
+# makes a plain `systemctl restart` fail every time, because the OLD
+# process hasn't released its lock file yet when the new one starts.
+# --replace tells Hermes to hand off cleanly. Confirmed against the live
+# VPS: without --replace, the unit flaps in a restart loop with
+# "Gateway already running (PID ...)" until the stale gateway.pid/gateway.lock
+# files under HERMES_HOME are removed by hand.
+ExecStart={{ hermes_venv_python }} -m hermes_cli.main --profile {{ item.name }} gateway run --replace
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
