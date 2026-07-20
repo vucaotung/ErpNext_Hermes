@@ -22,4 +22,25 @@ services:
     # containers on the platform-internal network do (mục 9 architecture).
     # Also published to 127.0.0.1 only (not 0.0.0.0) so a native, non-Dockerized
     # Hermes process on the same host (e.g. the native Hermes Agent CLI) can
-    # reach it via lo
+    # reach it via localhost, without exposing it to the public internet.
+    expose:
+      - "{{ bridge_internal_port }}"
+    ports:
+      - "127.0.0.1:{{ bridge_internal_port }}:{{ bridge_internal_port }}"
+    # end port publish
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  platform-internal:
+    external: true
+  proxy-net:
+    external: true
