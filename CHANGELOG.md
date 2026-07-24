@@ -38,12 +38,14 @@ SemVer tuyệt đối vì đây là hạ tầng nội bộ, không phải thư v
 - Xác nhận cuối: `curl -X POST /auth/password-login` với mật khẩu sai trả
   về `401 {"detail":"Invalid credentials"}` (đúng hành vi), không còn lỗi
   "headless backend".
+- Tùng xác nhận đăng nhập thành công vào `https://hermes.enterpriseos.bond/login`
+  bằng mật khẩu đã nhớ lại từ lúc setup (username `admin`) - không cần reset.
 
-### Chưa làm
-- Mật khẩu dashboard hiện tại (`username: admin`) chỉ lưu dạng hash
-  (scrypt) trong `/root/.hermes/config.yaml` - không thể đọc lại. Tùng cần
-  tự thử mật khẩu đã đặt lúc setup, hoặc nhờ đặt lại (dùng
-  `plugins.dashboard_auth.basic.hash_password()` để tạo hash mới).
+### Đã đóng (trước đây "chưa làm")
+- Ban đầu không rõ Tùng còn nhớ mật khẩu dashboard hay không (chỉ lưu dạng
+  hash scrypt trong `/root/.hermes/config.yaml`, không đọc lại được) - đã
+  xác nhận vẫn nhớ, không cần reset. Nếu sau này cần đặt lại: dùng
+  `plugins.dashboard_auth.basic.hash_password()` để tạo hash mới.
 
 ## [2026-07-24] — Truy cập từ xa cho Hermes dashboard, hết phụ thuộc IP tĩnh
 ### Vấn đề
