@@ -16,6 +16,15 @@
 # risk silently overwriting a deliberate local fix. Treat "Hermes is
 # installed and hermes --version works" as a precondition of this role.
 
+- name: Create Second Brain vault directory (Obsidian skill target)
+  ansible.builtin.file:
+    path: "{{ hermes_wiki_path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+  when: hermes_wiki_path is defined
+
 - name: Create Hermes env-file root directory
   ansible.builtin.file:
     path: "{{ hermes_root }}"

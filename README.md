@@ -22,6 +22,9 @@ Triển khai bằng Ansible lên 1 VPS, có staging/production tách biệt.
 - [`docs/archive/`](docs/archive/) — kế hoạch triển khai gốc (PDF) và báo
   cáo đối chiếu lịch sử (giữ để tham khảo, không phải trạng thái mới nhất).
 - [`CHANGELOG.md`](CHANGELOG.md) — lịch sử thay đổi theo mốc.
+- [`docs/wiki/`](docs/wiki/00_home.md) — **Second Brain**: bộ nhớ ngoài cho
+  AI agent (kiến trúc, quyết định, sự cố đã gặp + cách sửa), atomic notes có
+  frontmatter, không thay thế PROJECT_HANDBOOK.md mà bổ sung tra cứu nhanh.
 
 ## Kiến trúc tóm tắt
 

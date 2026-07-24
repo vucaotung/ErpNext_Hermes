@@ -42,6 +42,12 @@ hermes_dashboard_domain: hermes.enterpriseos.bond
 caddy_proxy_network_subnet: 172.19.0.0/16
 caddy_proxy_network_gateway: 172.19.0.1
 hermes_root: "{{ platform_root }}/hermes"
+# Second Brain vault (Obsidian skill) - see docs/wiki/00_home.md. Deliberately
+# outside platform_root: this is knowledge, not deployed app state, and
+# should survive independently of any single profile/deploy. Mirrored (not
+# auto-synced yet - see docs/wiki/04_operations/wiki_sync_process.md) with
+# docs/wiki/ in this repo.
+hermes_wiki_path: /root/wiki
 # Hermes runs bare-metal on the host (NOT Docker - confirmed live 2026-07-16:
 # `docker images` has no hermes-agent image at all; the real processes are
 # `/usr/local/lib/hermes-agent/venv/bin/python -m hermes_cli.main --profile

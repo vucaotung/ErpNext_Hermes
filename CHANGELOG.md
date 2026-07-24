@@ -13,6 +13,35 @@ SemVer tuyệt đối vì đây là hạ tầng nội bộ, không phải thư v
 - Roster `hermes_org_people` (L1/L2) và Telegram ID thật còn rỗng/mẫu.
 - Pilot thật với người dùng thật.
 
+## [2026-07-24 #3] — Second Brain: wiki cho AI agent (docs/wiki/)
+### Thêm
+- `docs/wiki/` — vault Obsidian-style, 15 note atomic có YAML frontmatter,
+  theo 5 nguyên tắc: ánh xạ theo kiến trúc thật, tách vòng đời (SSOT vs
+  `99_archive/`), phẳng tối đa 3 cấp, tên file/frontmatter máy đọc được, và
+  "phá vỡ là một quy trình" (không sửa đè lịch sử). Mục đích: agent AI (Claude,
+  Hermes, Antigravity...) tra cứu nhanh sự thật/quyết định/sự cố đã biết mà
+  không phải đọc lại toàn bộ PROJECT_HANDBOOK.md hay suy luận lại từ đầu.
+- Nội dung ban đầu: 4 incident thật đã gặp trong dự án (FUSE truncation,
+  hermes-serve vs hermes-dashboard, BRIDGE_BASE_URL DNS, IP-whitelist khoá
+  admin), 3 quyết định kiến trúc (ADR ngắn), 3 note kiến trúc, 2 note vận
+  hành, 1 glossary.
+- `OBSIDIAN_VAULT_PATH` (biến mới `hermes_wiki_path: /root/wiki`) thêm vào
+  `profile.env.j2` — Hermes dùng skill Obsidian có sẵn (bundled, miễn phí)
+  để đọc/ghi vault này trực tiếp khi chat qua Telegram/dashboard.
+
+### Đã cân nhắc nhưng không chọn
+- Gemini Notebook API (trước đây NotebookLM API): cần Google Cloud project +
+  add-on Gemini Enterprise/Education Premium trả phí riêng — không phù hợp
+  cho mục đích wiki kỹ thuật miễn phí, self-hosted của dự án này.
+- Skill `code-wiki` có sẵn trong Hermes (tự đọc source code sinh wiki): vẫn
+  là lựa chọn tốt cho wiki *kỹ thuật thuần code* trong tương lai, nhưng
+  không phải điều được yêu cầu ở đây (second brain rộng hơn, gồm cả quyết
+  định/sự cố, không chỉ cấu trúc code).
+
+### Chưa làm
+- Chưa có cơ chế tự động đồng bộ `docs/wiki/` (repo) ↔ `/root/wiki` (VPS,
+  Hermes đọc/ghi live) — xem `docs/wiki/04_operations/wiki_sync_process.md`.
+
 ## [2026-07-24 #2] — Sửa lệnh sai của chính hermes-serve.service (đã tồn tại từ trước)
 ### Vấn đề
 - Sau khi mở được `https://hermes.enterpriseos.bond/login` (mục trên), đăng
