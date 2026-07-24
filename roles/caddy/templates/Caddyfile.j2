@@ -11,3 +11,19 @@
     Referrer-Policy "strict-origin-when-cross-origin"
   }
 }
+
+{% if hermes_dashboard_domain is defined and hermes_dashboard_domain %}
+{{ hermes_dashboard_domain }} {
+  encode zstd gzip
+  reverse_proxy {{ caddy_proxy_network_gateway }}:{{ hermes_dashboard_port }}
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    X-Content-Type-Options "nosniff"
+    Referrer-Policy "strict-origin-when-cross-origin"
+  }
+  log {
+    output file /var/log/caddy/hermes-dashboard.log
+    format json
+  }
+}
+{% endif %}

@@ -27,6 +27,21 @@
     port: "443"
     proto: tcp
 
+# The Hermes dashboard (hermes-serve, port 9119) is NOT exposed to the
+# public internet directly - it's reached via Caddy's HTTPS reverse proxy
+# (hermes_dashboard_domain) instead. This rule only lets the Caddy
+# container's own Docker network reach the dashboard on the host, which is
+# what the reverse-proxy hairpin needs. Previously this port had a
+# public-but-IP-whitelisted rule that had to be manually updated every time
+# the admin's IP changed while travelling - replaced 2026-07-24.
+- name: Allow Caddy's Docker network to reach the Hermes dashboard (internal hairpin only, not public)
+  community.general.ufw:
+    rule: allow
+    port: "{{ hermes_dashboard_port }}"
+    proto: tcp
+    src: "{{ caddy_proxy_network_subnet }}"
+  when: hermes_dashboard_port is defined and caddy_proxy_network_subnet is defined
+
 - name: Enable UFW
   community.general.ufw:
     state: enabled

@@ -7,6 +7,15 @@
     group: "{{ platform_group }}"
     mode: "0750"
 
+- name: Create Caddy access-log directory
+  ansible.builtin.file:
+    path: "{{ caddy_root }}/logs/caddy"
+    state: directory
+    # Caddy's official image runs as root and does not map to platform_user's
+    # uid/gid inside the container, so this directory needs to be writable by
+    # any uid - matches what was done live on 2026-07-24.
+    mode: "0777"
+
 - name: Render Caddy Compose file
   ansible.builtin.template:
     src: compose.yaml.j2

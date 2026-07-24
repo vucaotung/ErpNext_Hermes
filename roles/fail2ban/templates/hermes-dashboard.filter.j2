@@ -1,0 +1,8 @@
+# Filter for Caddy's JSON access log ({{ hermes_dashboard_domain }} site block).
+# Matches failed login attempts against the Hermes dashboard's
+# password-login endpoint (401/403 responses to POST /auth/password-login).
+# Field order in Caddy's JSON log is not guaranteed, so this uses
+# lookaheads instead of a strict left-to-right match.
+[Definition]
+failregex = ^.*"client_ip":"<HOST>"(?=.*"uri":"/auth/password-login")(?=.*"status":40[13]).*$
+ignoreregex =

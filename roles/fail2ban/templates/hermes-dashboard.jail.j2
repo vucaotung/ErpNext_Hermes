@@ -1,0 +1,9 @@
+[hermes-dashboard]
+enabled  = true
+filter   = hermes-dashboard
+logpath  = {{ caddy_root }}/logs/caddy/hermes-dashboard.log
+port     = 80,443
+maxretry = 5
+findtime = 600
+bantime  = 3600
+action   = %(action_)s

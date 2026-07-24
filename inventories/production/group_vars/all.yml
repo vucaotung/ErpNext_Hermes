@@ -25,7 +25,23 @@ erpnext_custom_apps:
     repo: "{{ platform_root }}/erpnext/custom-apps/hermes_ops"
 
 caddy_root: "{{ platform_root }}/proxy"
-caddy_email: admin@example.com
+caddy_email: vucaotung@gmail.com
+
+# Remote access to the Hermes dashboard (`hermes serve`), added 2026-07-24:
+# the dashboard is reverse-proxied through Caddy on its own subdomain with
+# real TLS instead of relying on an IP-whitelisted firewall rule (which broke
+# every time the admin's IP changed while travelling). Caddy runs in the
+# `proxy-net` Docker network and reaches the dashboard - which listens on the
+# host, not in a container - via that network's gateway IP (Docker's
+# `host.docker.internal` / `host-gateway` alias resolves to the *default*
+# bridge (docker0), not `proxy-net`, on this host, so the gateway IP below is
+# hardcoded to match `docker network inspect proxy-net`; re-check this value
+# if the network is ever recreated).
+hermes_dashboard_port: 9119
+hermes_dashboard_domain: hermes.enterpriseos.bond
+caddy_proxy_network_subnet: 172.19.0.0/16
+caddy_proxy_network_gateway: 172.19.0.1
+
 
 hermes_root: "{{ platform_root }}/hermes"
 # Hermes runs bare-metal on the host (NOT Docker - confirmed live 2026-07-16:

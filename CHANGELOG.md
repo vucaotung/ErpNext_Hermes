@@ -13,6 +13,44 @@ SemVer tuyệt đối vì đây là hạ tầng nội bộ, không phải thư v
 - Roster `hermes_org_people` (L1/L2) và Telegram ID thật còn rỗng/mẫu.
 - Pilot thật với người dùng thật.
 
+## [2026-07-24] — Truy cập từ xa cho Hermes dashboard, hết phụ thuộc IP tĩnh
+### Vấn đề
+- Dashboard `hermes serve` (cổng 9119) chỉ cho phép truy cập qua UFW rule
+  chặn theo IP admin cụ thể — mỗi lần đổi IP (đi công tác, đổi mạng) phải
+  sửa firewall tay, và người dùng bị chặn hoàn toàn (timeout) cho tới lúc đó.
+  Phát hiện trực tiếp khi Tùng báo "không truy cập được vào hermes desktop":
+  log kernel cho thấy hàng loạt gói UFW BLOCK từ IP mới của Tùng nhắm đúng
+  cổng 9119.
+
+### Đã thêm (live VPS 2026-07-24, giờ đã đồng bộ vào repo)
+- Subdomain `hermes.enterpriseos.bond` → Caddy → dashboard, có TLS thật
+  (Let's Encrypt qua Caddy tự động, domain do Tùng thêm bản ghi A trên
+  Namecheap). Không cần VPN, không cần cấu hình gì thêm trên máy khi di
+  chuyển — chỉ cần trình duyệt + mật khẩu dashboard.
+- Caddy container (mạng Docker riêng `proxy-net`) reverse-proxy tới dashboard
+  đang chạy bare-metal trên host qua gateway IP của mạng đó
+  (`172.19.0.1:9119`) — `host.docker.internal`/`host-gateway` KHÔNG dùng
+  được ở đây vì nó trỏ vào bridge mặc định (docker0), không phải `proxy-net`.
+  Xem comment trong `inventories/production/group_vars/all.yml`.
+- UFW: xoá hết rule public/whitelist-theo-IP cho cổng 9119, thay bằng 1 rule
+  duy nhất chỉ cho phép subnet nội bộ của `proxy-net` (172.19.0.0/16) —
+  cổng 9119 giờ không thể truy cập trực tiếp từ Internet nữa, chỉ qua Caddy
+  ở cổng 443.
+- `fail2ban` (role mới `roles/fail2ban/`): đọc log JSON của Caddy cho site
+  dashboard, ban IP sau 5 lần đăng nhập sai (401/403 vào
+  `/auth/password-login`) trong 10 phút, ban 1 giờ.
+- Systemd unit cho `hermes serve` chính nó (`roles/hermes/templates/hermes-serve.service.j2`)
+  — trước đây chỉ tồn tại live trên VPS (tạo tay), chưa từng có trong repo.
+- `caddy_email` trong `group_vars/all.yml` sửa từ placeholder
+  `admin@example.com` thành giá trị thật đang dùng live.
+
+### Chưa làm / rủi ro còn lại
+- `caddy_proxy_network_gateway` (172.19.0.1) là hardcode theo subnet hiện
+  tại của `proxy-net` — nếu network Docker này bị xoá/tạo lại với subnet
+  khác, giá trị này phải cập nhật tay (không có auto-discovery trong role).
+- Mật khẩu đăng nhập dashboard vẫn dùng cơ chế password-only có sẵn của
+  Hermes (`BasicAuthProvider`) — chưa có 2FA.
+
 ## [2026-07-16] — Đồng bộ VPS ↔ repo, bare-metal Hermes, L1/L2 provisioning
 ### Added
 - `PROJECT_HANDBOOK.md`: tài liệu tổng — cấu trúc dự án, setup, cheat sheet,

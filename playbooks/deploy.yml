@@ -8,5 +8,6 @@
     - erpnext-bridge
     - caddy
     - hermes
+    - fail2ban
     - backup
     - monitoring
