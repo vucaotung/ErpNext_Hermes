@@ -7,7 +7,17 @@ Wants=network-online.target
 Type=simple
 User=root
 WorkingDirectory=/root
-ExecStart={{ hermes_venv_python | dirname }}/hermes serve --host 0.0.0.0 --port {{ hermes_dashboard_port }}
+# `hermes serve` is the headless JSON-RPC/WebSocket backend only - it has NO
+# working web UI (confirmed live 2026-07-24: it renders the /login page but
+# every real API call, e.g. POST /auth/password-login, returns
+# {"error": "Headless backend (hermes serve): web UI disabled - use
+# `hermes dashboard` for the browser UI."}). `hermes dashboard` is the
+# correct command for what this unit is for. --skip-build requires
+# hermes_cli/web_dist to already exist - see the
+# "Check that the Hermes dashboard web UI is built" task in tasks/main.yml,
+# which fails fast with a clear message instead of letting this unit
+# crash-loop the way it did live before this was caught.
+ExecStart={{ hermes_venv_python | dirname }}/hermes dashboard --host 0.0.0.0 --port {{ hermes_dashboard_port }} --skip-build --no-open
 Restart=always
 RestartSec=5
 

@@ -13,6 +13,38 @@ SemVer tuyệt đối vì đây là hạ tầng nội bộ, không phải thư v
 - Roster `hermes_org_people` (L1/L2) và Telegram ID thật còn rỗng/mẫu.
 - Pilot thật với người dùng thật.
 
+## [2026-07-24 #2] — Sửa lệnh sai của chính hermes-serve.service (đã tồn tại từ trước)
+### Vấn đề
+- Sau khi mở được `https://hermes.enterpriseos.bond/login` (mục trên), đăng
+  nhập vẫn lỗi: `{"error":"Headless backend (hermes serve): web UI disabled -
+  use \`hermes dashboard\` for the browser UI."}`. Hoá ra unit
+  `hermes-serve.service` từ trước tới giờ (kể cả trước khi tôi động vào gì)
+  chạy nhầm lệnh `hermes serve` (backend JSON-RPC/WebSocket thuần, KHÔNG có
+  web UI thật) thay vì `hermes dashboard` (lệnh đúng cho web UI). Trang
+  `/login` vẫn render được (HTML tĩnh) nên trông như hoạt động, nhưng mọi
+  API thật (`POST /auth/password-login`, `GET /api/auth/providers`...) đều
+  từ chối phục vụ.
+
+### Đã sửa (live + repo)
+- Đổi `ExecStart` của `hermes-serve.service` sang
+  `hermes dashboard --host 0.0.0.0 --port 9119 --skip-build --no-open`.
+- `--skip-build` cần `hermes_cli/web_dist` đã được build sẵn - trước đó
+  chưa từng build (`npm install --workspace web && npm run build -w web`),
+  nên lần đầu đổi sang `hermes dashboard` unit crash-loop im lặng cho tới
+  khi phát hiện qua journalctl. Đã build trực tiếp trên VPS.
+- Thêm task Ansible mới kiểm tra `web_dist` tồn tại trước khi
+  enable/start unit, fail rõ ràng kèm lệnh build đúng thay vì để
+  crash-loop âm thầm ở lần deploy tiếp theo trên máy khác/VPS mới.
+- Xác nhận cuối: `curl -X POST /auth/password-login` với mật khẩu sai trả
+  về `401 {"detail":"Invalid credentials"}` (đúng hành vi), không còn lỗi
+  "headless backend".
+
+### Chưa làm
+- Mật khẩu dashboard hiện tại (`username: admin`) chỉ lưu dạng hash
+  (scrypt) trong `/root/.hermes/config.yaml` - không thể đọc lại. Tùng cần
+  tự thử mật khẩu đã đặt lúc setup, hoặc nhờ đặt lại (dùng
+  `plugins.dashboard_auth.basic.hash_password()` để tạo hash mới).
+
 ## [2026-07-24] — Truy cập từ xa cho Hermes dashboard, hết phụ thuộc IP tĩnh
 ### Vấn đề
 - Dashboard `hermes serve` (cổng 9119) chỉ cho phép truy cập qua UFW rule

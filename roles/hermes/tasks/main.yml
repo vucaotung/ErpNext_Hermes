@@ -149,6 +149,29 @@
 # previous IP-whitelisted-firewall-rule approach, which broke every time the
 # admin travelled and got a new IP.
 
+- name: Check that the Hermes dashboard web UI is built
+  ansible.builtin.stat:
+    path: "{{ hermes_venv_python | dirname | dirname | dirname }}/hermes_cli/web_dist/index.html"
+  register: hermes_web_dist_check
+  when: hermes_dashboard_port is defined
+
+# `hermes dashboard --skip-build` (used by hermes-serve.service.j2) refuses
+# to start if this doesn't exist - confirmed live 2026-07-24, where the unit
+# crash-looped silently under systemd (each failed start only logged to the
+# journal) until caught by hand. Fail fast here instead, with the exact fix.
+- name: Fail with build instructions if the dashboard web UI isn't built yet
+  ansible.builtin.fail:
+    msg: >-
+      Hermes dashboard web UI is not built at
+      {{ hermes_venv_python | dirname | dirname | dirname }}/hermes_cli/web_dist -
+      `hermes dashboard --skip-build` (see hermes-serve.service.j2) will crash-loop
+      without it. Build it once on the target host with:
+      cd {{ hermes_venv_python | dirname | dirname | dirname }} &&
+      npm install --workspace web && npm run build -w web
+  when:
+    - hermes_dashboard_port is defined
+    - not hermes_web_dist_check.stat.exists
+
 - name: Render Hermes dashboard systemd unit
   ansible.builtin.template:
     src: hermes-serve.service.j2
