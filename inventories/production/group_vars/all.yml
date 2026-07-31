@@ -61,9 +61,12 @@ hermes_wiki_path: /root/wiki
 # manual prerequisite (see docs/OPERATIONS.md and roles/hermes/tasks/main.yml
 # top-of-file comment). The live install is version-pinned informationally
 # only: `hermes --version` reports "v0.18.2 (2026.7.7.2) - upstream
-# f8b6d381 - local 48788032 (+1 carried commit)" - i.e. one local patch on
-# top of upstream that this repo has no record of. Before reinstalling
-# Hermes from scratch anywhere, find out what that carried commit changes.
+# f8b6d381 - local 48788032 (+1 carried commit)" - investigated 2026-07-31
+# (issue #7): this is a shallow-clone display artifact, not a real local
+# patch. Commit 48788032 matches NousResearch/hermes-agent upstream exactly
+# (verified via GitHub API - teknium1, 2026-07-08, "fix(tui): derive
+# gateway-owned sources from the Platform enum"). Safe to reinstall Hermes
+# from scratch anywhere using the pinned version tag, no patch to reapply.
 hermes_venv_python: /usr/local/lib/hermes-agent/venv/bin/python
 hermes_state_root: /root/.hermes/profiles
 hermes_primary_provider: openrouter
