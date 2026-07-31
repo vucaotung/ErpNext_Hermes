@@ -3,7 +3,29 @@
 Định dạng theo [Keep a Changelog](https://keepachangelog.com/) (không dùng
 SemVer tuyệt đối vì đây là hạ tầng nội bộ, không phải thư viện — mỗi mục là
 1 mốc triển khai/thay đổi đáng kể trên production hoặc trong repo).
+## [2026-07-31] — Giải mã "+1 carried commit" của Hermes (issue #7) — không có patch ẩn
+### Vấn đề
+`hermes --version` trên VPS production báo `upstream f8b6d381 · local
+48788032 (+1 carried commit)`, nghi ngờ có 1 patch local không có bản ghi
+trong repo, cần điều tra trước khi cài lại Hermes ở nơi khác.
 
+### Đã điều tra
+- SSH vào VPS (`git log`/`git show 48788032 --stat`/`git diff f8b6d381
+  48788032` tại `/usr/local/lib/hermes-agent`): repo cài đặt là **shallow/
+  grafted clone** (`(grafted, HEAD -> main)`), chỉ có đúng 1 commit object
+  cục bộ — không có lịch sử đầy đủ để so sánh với `f8b6d381`.
+- Đối chiếu commit `48788032` với repo upstream NousResearch/hermes-agent
+  qua GitHub API: **khớp 100%** SHA lẫn nội dung — `fix(tui): derive
+  gateway-owned sources from the Platform enum, not a hardcoded list`, tác
+  giả `teknium1`, 2026-07-08. Đây là commit chính thức đã có trên upstream,
+  không phải patch tự chế cục bộ.
+
+### Kết luận
+"+1 carried commit" là hiển thị sai do giới hạn shallow-clone (git không
+có object `f8b6d381` cục bộ nên so sánh lệch), không phải patch thật.
+**An toàn để cài lại Hermes ở bất kỳ đâu (staging, disaster recovery...)
+bằng đúng version tag hiện tại — không cần tìm/áp lại patch nào.** Đóng
+issue #7.
 ## [Unreleased]
 ### Chưa làm (xem PROJECT_HANDBOOK.md mục 8.2 và tab Issues)
 - ~24 skill còn thiếu so với kế hoạch gốc.
