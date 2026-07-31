@@ -466,9 +466,6 @@ Repo đã có khung sẵn cho **sales-crm** (`enabled: false` trong `all.yml`) �
   chưa restore-test thật.
 - `vault_openrouter_api_key`/`vault_tokenhub_api_key`: chưa rõ có cần không
   vì DeepSeek qua OpenRouter đang là provider chính đang hoạt động.
-- Chưa rõ "+1 carried commit" trong bản Hermes đang chạy live
-  (`hermes --version`) là patch gì — cần tìm hiểu trước khi cài lại Hermes
-  từ đầu ở bất kỳ đâu (xem mục 4, comment trong `all.yml`).
 - Pilot thật với người dùng thật (Phase 9 kế hoạch gốc) — chưa bắt đầu.
 
 ---
