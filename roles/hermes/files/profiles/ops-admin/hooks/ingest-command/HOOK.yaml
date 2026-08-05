@@ -1,0 +1,4 @@
+name: ingest-command
+description: Handle /ingest <url> [legal|project] - fetch a URL and push it into the Onyx knowledge base
+events:
+  - command:ingest

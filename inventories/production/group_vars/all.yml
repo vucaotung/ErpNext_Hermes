@@ -107,6 +107,11 @@ hermes_profiles:
     erpnext_api_user: hermes-ops@company.local
     erpnext_api_key_var: vault_erpnext_ops_api_key
     erpnext_api_secret_var: vault_erpnext_ops_api_secret
+    # Onyx Ingest Bridge: /ingest <url> [legal|project] -> onyx-bridge
+    # (bare-metal venv, 127.0.0.1:8643 on the Onyx VPS) -> Onyx knowledge
+    # base. See docs/wiki/01_architecture/onyx_bridge.md. Requires
+    # vault_onyx_bridge_shared_secret_ops_admin in the vault.
+    onyx_ingest_enabled: true
     allowed_users: "{{ telegram_admin_user_ids }}"
     admin_users: "{{ telegram_admin_user_ids }}"
     group_allowed_chats:
@@ -123,6 +128,7 @@ hermes_profiles:
     # PROJECT_HANDBOOK.md section 7 for the full L0-L3 permission model.
     plugins:
       - erpnext-identity
+      - onyx-ingest
   - name: staff-work
     telegram_bot_token_var: vault_telegram_staff_bot_token
     erpnext_api_user: hermes-staff@company.local

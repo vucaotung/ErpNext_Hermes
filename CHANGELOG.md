@@ -3,6 +3,84 @@
 Định dạng theo [Keep a Changelog](https://keepachangelog.com/) (không dùng
 SemVer tuyệt đối vì đây là hạ tầng nội bộ, không phải thư viện — mỗi mục là
 1 mốc triển khai/thay đổi đáng kể trên production hoặc trong repo).
+## [2026-08-01] — Kho tri thức pháp chế trên Onyx + lệnh /ingest cho Hermes
+
+### Bối cảnh
+Cần một kho tri thức RAG riêng cho "pháp chế" (văn bản quy phạm pháp luật +
+hồ sơ dự án) mà Hermes có thể tự động nạp tài liệu vào khi được gửi link
+qua Telegram, thay vì phải upload tay qua UI.
+
+### Đã dựng
+- **VPS Onyx mới** (169.58.107.168, Ubuntu 24.04) — cài Onyx chế độ
+  Standard (full RAG: OpenSearch, Redis, model server, background worker),
+  LLM DeepSeek trực tiếp, embedding local. RAM danh nghĩa 7.8GB thấp hơn
+  mức khuyến nghị 10GB của Onyx nên thêm 8GB swap thay vì nâng cấp gói.
+- 2 Document Set: "Văn bản quy phạm pháp luật" (cc_pair_id=2) và "Hồ sơ dự
+  án" (cc_pair_id=3), mỗi cái có 1 File Connector seed + Onyx Access Token
+  riêng (`hermes-ingestion`) để gọi Ingestion API.
+- **`integration/onyx-bridge/`** — service FastAPI mới, độc lập hoàn toàn
+  với `integration/erpnext-bridge/` (không đọc được ERPNext, và
+  erpnext-bridge không ra được Internet). Chỉ làm đúng 1 việc: nhận URL,
+  fetch + trích văn bản (có chặn SSRF vào IP nội bộ), đẩy vào Onyx
+  Ingestion API theo đúng Document Set (`target: legal|project`). Cùng
+  pattern xác thực/rate-limit/audit-log per-profile như erpnext-bridge,
+  nhưng chạy bare-metal qua venv (không Docker) trên cổng 127.0.0.1:8643.
+- **`roles/hermes/files/profiles/ops-admin/hooks/ingest-command/`** +
+  **`.../plugins/onyx-ingest/`** — lệnh `/ingest <url> [legal|project]`
+  mới cho Hermes, đúng pattern gateway hook đã dùng cho `/link`/`/assign`
+  (nhận `user_id` Telegram thật từ gateway, không phải LLM tự suy ra —
+  không thể giả mạo).
+- Wiring vào `roles/hermes/templates/profile.env.j2` (biến
+  `ONYX_BRIDGE_BASE_URL`/`ONYX_BRIDGE_TOKEN`, guard theo
+  `item.onyx_ingest_enabled`) + `inventories/production/group_vars/all.yml`
+  (bật `onyx_ingest_enabled: true` và thêm `onyx-ingest` vào danh sách
+  `plugins` của profile `ops-admin`).
+
+### Đã cân nhắc nhưng không chọn
+- Free-form LLM tool/SKILL.md để agent tự quyết định "link này là pháp
+  luật hay dự án rồi tự gọi API" — đã viết nháp
+  (`admin-ingest-legal-doc/SKILL.md`) nhưng bỏ sau khi soi kiến trúc thật
+  trên VPS production: mọi lệnh Telegram nhạy cảm (`/link`, `/assign`) đều
+  dùng gateway hook xác định (deterministic), không phải LLM tool, vì hook
+  nhận thẳng `user_id` từ gateway — an toàn hơn và nhất quán với phần còn
+  lại của hệ thống.
+- Onyx "Web Connector" có sẵn (tự crawl theo lịch) — không chọn vì user
+  muốn kiểm soát chính xác link nào được nạp, khi nào, qua Telegram.
+
+### Đã test
+- Gọi trực tiếp Onyx Ingestion API với tài liệu thật
+  (`https://costflow.vn/van-ban/xay-dung#gioi-thieu`) → 200, tạo doc mới.
+- Gọi lại đúng URL đó qua `onyx-bridge` (`/ingest_url`, có bearer token
+  per-profile thật) → 200, `already_existed: true`, trích đúng 21.307 ký
+  tự, xác nhận toàn bộ chuỗi hook → bridge → Onyx hoạt động.
+- `hermes-gateway-ops-admin.service` load hook `ingest-command` thành công
+  sau khi bật plugin `onyx-ingest` và restart.
+
+### Sự cố gặp phải khi triển khai
+- `BRIDGE_REQUEST_TIMEOUT` mặc định 20s không đủ cho tài liệu thật (VPS
+  dùng embedding local trên CPU, có swap) → tăng lên 60s.
+- `hermes plugins enable onyx-ingest` có prompt xin quyền
+  "allow_tool_override" (cho phép plugin ghi đè built-in tool) — đã lỡ
+  chấp nhận (`true`) dù plugin chỉ đăng ký 1 slash command, không cần
+  quyền này. Đã sửa lại `allow_tool_override: false` trong
+  `config.yaml` của profile để đúng nguyên tắc least-privilege, khớp với
+  `erpnext-identity` (plugin cũng chỉ đăng ký command, không có quyền
+  này).
+- Onyx `WEB_DOMAIN` bị để trống trong `.env` → OAuth callback (vd. Google
+  Drive connector) redirect về `localhost:3000` thay vì IP thật, không
+  load được. Sửa thành `http://169.58.107.168:3000`, recreate lại
+  `api_server`/`web_server`/`nginx`.
+
+### Chưa làm
+- Domain + TLS cho Onyx (hiện chỉ truy cập qua `http://169.58.107.168:3000`).
+- Test `/ingest` qua tin nhắn Telegram thật (mới test trực tiếp qua bridge
+  bằng curl, chưa qua bot thật).
+- Google Drive connector: `GOOGLE_OAUTH_CLIENT_ID`/`SECRET` vẫn trống,
+  cần tạo OAuth app (Google Cloud Console) hoặc Service Account trước khi
+  connector này dùng được — việc của user, chưa làm.
+- Phase 2 (đã hoãn theo lựa chọn của user): agent tự tìm/tự crawl theo "ý
+  tưởng nghiên cứu" thay vì chỉ theo link cụ thể.
+
 ## [2026-07-31] — Giải mã "+1 carried commit" của Hermes (issue #7) — không có patch ẩn
 ### Vấn đề
 `hermes --version` trên VPS production báo `upstream f8b6d381 · local

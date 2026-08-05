@@ -1,0 +1,18 @@
+[Unit]
+Description=Onyx Ingest Bridge (Hermes -> Onyx legal/project knowledge base)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/onyx-bridge
+EnvironmentFile=/opt/onyx-bridge/.env
+ExecStart=/opt/onyx-bridge/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8643
+Restart=on-failure
+RestartSec=3
+User=root
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/data/onyx-bridge
+
+[Install]
+WantedBy=multi-user.target
