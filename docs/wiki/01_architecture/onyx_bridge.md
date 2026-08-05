@@ -62,6 +62,18 @@ qua tool call). `/ingest` theo đúng pattern đó để nhất quán.
   trong repo — xem `integration/onyx-bridge/env.template` cho danh sách
   biến cần điền khi deploy.
 
+## Chiều ngược lại: Hermes đọc dữ liệu Onyx qua MCP (2026-08-05)
+
+`/ingest` chỉ đẩy dữ liệu một chiều (Hermes → Onyx). Để agent Hermes tự
+tra cứu lại kho tri thức, KHÔNG viết bridge riêng — dùng thẳng MCP server
+tích hợp sẵn của Onyx (`MCP_SERVER_ENABLED=true`, expose qua Caddy tại
+`https://onyx.enterpriseos.bond/mcp/`), đăng ký làm MCP client trong
+`config.yaml.j2` (`mcp_servers.onyx`, guard `item.onyx_mcp_enabled`) của
+profile `ops-admin`. 3 tool: `search_indexed_documents`, `search_web`,
+`open_urls`. Xem CHANGELOG.md `[2026-08-05]` cho chi tiết + rủi ro đã biết
+(template ghi đè `mcp_servers:` sẽ mất entry `erpnext` nếu không thêm lại
+thủ công).
+
 ## Chưa tự động hoá
 
 - Chưa có Ansible role/task để tự deploy `integration/onyx-bridge` (venv,

@@ -112,6 +112,9 @@ hermes_profiles:
     # base. See docs/wiki/01_architecture/onyx_bridge.md. Requires
     # vault_onyx_bridge_shared_secret_ops_admin in the vault.
     onyx_ingest_enabled: true
+    # Onyx's own MCP server (search_indexed_documents/search_web/open_urls)
+    # registered as a Hermes MCP client. Requires vault_onyx_mcp_api_key.
+    onyx_mcp_enabled: true
     allowed_users: "{{ telegram_admin_user_ids }}"
     admin_users: "{{ telegram_admin_user_ids }}"
     group_allowed_chats:

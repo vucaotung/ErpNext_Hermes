@@ -3,6 +3,54 @@
 Định dạng theo [Keep a Changelog](https://keepachangelog.com/) (không dùng
 SemVer tuyệt đối vì đây là hạ tầng nội bộ, không phải thư viện — mỗi mục là
 1 mốc triển khai/thay đổi đáng kể trên production hoặc trong repo).
+## [2026-08-05] — Hermes đọc được kho tri thức Onyx qua MCP (chiều ngược của /ingest)
+
+### Bối cảnh
+`/ingest` (mục 2026-08-01) chỉ đẩy dữ liệu MỘT CHIỀU: Hermes → Onyx. Agent
+LLM trả lời Telegram không có cách nào tra cứu lại 2 Document Set đã nạp.
+User hỏi rõ: agent do Hermes điều phối kết nối vào dữ liệu Onyx thế nào —
+câu trả lời trung thực lúc đó là "chưa kết nối được", và được yêu cầu vá
+bằng chính MCP server có sẵn của Onyx thay vì tự viết bridge mới.
+
+### Đã dựng
+- Bật MCP server tích hợp sẵn của Onyx: uncomment service `mcp_server`
+  trong `docker-compose.yml` (VPS Onyx), `MCP_SERVER_ENABLED=true`, expose
+  port 8090 chỉ ra `127.0.0.1` (không public trực tiếp).
+- Thêm route `handle_path /mcp/*` vào Caddyfile, proxy sang
+  `localhost:8090` — vậy `https://onyx.enterpriseos.bond/mcp/` là URL MCP
+  công khai qua HTTPS, cùng domain với Onyx.
+- Đăng ký làm MCP client trong Hermes profile `ops-admin`
+  (`hermes mcp add onyx --url https://onyx.enterpriseos.bond/mcp/ --auth
+  header`, xác thực bằng chính Onyx Access Token `hermes-ingestion` đã có
+  từ trước) → 3 tool bật: `search_indexed_documents`, `search_web`,
+  `open_urls`. Token lưu vào `.env` profile dưới tên `MCP_ONYX_API_KEY`.
+- Wiring vào code-as-config: `roles/hermes/templates/config.yaml.j2`
+  (block `mcp_servers.onyx`, guard `item.onyx_mcp_enabled`) +
+  `profile.env.j2` (`MCP_ONYX_API_KEY`) + bật `onyx_mcp_enabled: true` cho
+  `ops-admin` trong `inventories/production/group_vars/all.yml`.
+
+### Đã cân nhắc nhưng không chọn
+- Tự viết 1 hook/command mới (`/hoi_phap_luat <câu hỏi>`) gọi thẳng Onyx
+  Search/Chat API — không chọn vì Onyx đã có sẵn MCP server chuẩn, dùng
+  thẳng ít code hơn, không phải tự bảo trì việc gọi search API + format
+  kết quả.
+
+### Đã test
+- `hermes mcp test onyx` → kết nối OK (741ms), phát hiện đúng 3 tool.
+- `hermes-gateway-ops-admin.service` restart sạch, hook `/ingest` vẫn hoạt
+  động song song, không xung đột.
+- Chưa test qua tin nhắn Telegram thật (agent thực sự gọi
+  `search_indexed_documents` và trả lời có trích dẫn) — để user tự thử.
+
+### Rủi ro đã biết, chưa xử lý
+- `config.yaml.j2` khi render lại **sẽ ghi đè toàn bộ `mcp_servers:`**,
+  gồm cả entry `erpnext` (adapter MCP cho ERPNext Bridge) — entry đó hiện
+  KHÔNG có trong template (được thêm ngoài luồng qua `hermes mcp add` thời
+  điểm dựng máy, giống các plugin/skill khác đã ghi nhận trước đây là lệch
+  giữa repo và trạng thái thật trên VPS). Nếu chạy lại Ansible full deploy
+  trên profile `ops-admin`, cần thêm lại `erpnext` mcp_servers bằng tay
+  sau đó, hoặc bổ sung entry đó vào template trước — chưa làm.
+
 ## [2026-08-01] — Kho tri thức pháp chế trên Onyx + lệnh /ingest cho Hermes
 
 ### Bối cảnh
