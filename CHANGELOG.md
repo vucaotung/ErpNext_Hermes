@@ -3,6 +3,38 @@
 Định dạng theo [Keep a Changelog](https://keepachangelog.com/) (không dùng
 SemVer tuyệt đối vì đây là hạ tầng nội bộ, không phải thư viện — mỗi mục là
 1 mốc triển khai/thay đổi đáng kể trên production hoặc trong repo).
+## [2026-08-05] — Cập nhật planning: Onyx thay wiki/Obsidian cho tri thức nghiệp vụ, output ghi vào Google Drive
+
+### Bối cảnh
+Sau khi dựng xong bridge Hermes↔Onyx hai chiều (mục ngay bên dưới), user
+yêu cầu cập nhật tài liệu planning của repo: không dùng mô hình wiki dạng
+Obsidian cho dữ liệu nghiệp vụ/pháp lý nữa — dùng Onyx; và kết quả
+(output) do agent tạo ra phải ghi vào Google Drive của user, không ghi vào
+thư mục cục bộ trong repo.
+
+### Đã dựng (chỉ tài liệu, không đổi hạ tầng)
+- Thêm mục "Kiến trúc bộ nhớ ngoài (Second Brain): Onyx thay wiki/Obsidian"
+  vào `docs/PLANNING.md`, ánh xạ rõ 3 lớp raw/wiki/output sang Google Drive
+  connector + `/ingest` / Onyx RAG / Google Drive của user.
+- Sửa mục README.md liệt kê `docs/wiki/` — thu hẹp phạm vi mô tả: đây là
+  bộ nhớ **kỹ thuật** cho agent làm việc trên chính repo này (kiến trúc,
+  quyết định, sự cố hạ tầng), không còn gọi là "Second Brain" tổng quát.
+  Thêm mục riêng cho Onyx đóng vai trò Second Brain cho dữ liệu pháp
+  chế/dự án.
+
+### Đã cân nhắc nhưng không chọn
+- Xoá hẳn `docs/wiki/` (Obsidian) — không chọn vì nó vẫn đang phục vụ tốt
+  cho bộ nhớ kỹ thuật/vận hành của chính repo `ErpNext_Hermes` (khác mục
+  đích với Onyx, vốn là kho tri thức nghiệp vụ/pháp lý). Chỉ thu hẹp mô tả
+  phạm vi, không xoá nội dung.
+
+### Chưa làm
+- Chưa có cơ chế kỹ thuật thật để ghi output do Hermes/Claude tạo ra
+  (báo cáo, tài liệu tổng hợp) thẳng vào Google Drive của user — hiện mới
+  là quy ước trong tài liệu planning. Cần chọn cơ chế cụ thể (Drive API
+  riêng cho Hermes hay tái dùng OAuth/connector đã có của Onyx) trước khi
+  triển khai.
+
 ## [2026-08-05] — Hermes đọc được kho tri thức Onyx qua MCP (chiều ngược của /ingest)
 
 ### Bối cảnh

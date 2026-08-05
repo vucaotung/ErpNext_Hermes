@@ -36,6 +36,37 @@ Nguyên tắc cốt lõi (không thay đổi qua các lần cập nhật repo):
 | Hermes deploy (bare-metal + systemd) | Hoàn thành, đồng bộ với thực tế VPS 2026-07-16 |
 | Pilot | Chưa bắt đầu — cần môi trường thật + người dùng thật |
 
+## Kiến trúc bộ nhớ ngoài ("Second Brain"): Onyx thay wiki/Obsidian (2026-08-05)
+
+Quyết định: với dữ liệu **nghiệp vụ/pháp lý** (pháp chế, hồ sơ dự án), không
+dùng mô hình wiki dạng Obsidian (`raw/` → `wiki/` → `output/` cục bộ trong
+repo). Thay vào đó dùng **Onyx** (`https://onyx.enterpriseos.bond`) làm lớp
+tri thức trung tâm — vì hệ thống này đã tồn tại, có RAG thật, và Tùng thao
+tác trực tiếp qua chat thay vì phải tự biên tập note.
+
+Ánh xạ 3 lớp:
+- **raw** (dữ liệu gốc) → Google Drive connector của Onyx (tự động), lệnh
+  `/ingest <url> [legal|project]` qua Hermes/Telegram, hoặc upload trực
+  tiếp vào Onyx.
+- **wiki** (tri thức có cấu trúc, tra cứu được) → chính Onyx (RAG search
+  qua Document Set "Văn bản quy phạm pháp luật" / "Hồ sơ dự án"), không
+  phải `docs/wiki/` của repo này.
+- **output** (kết quả tạo ra — báo cáo, tài liệu tổng hợp) → **Google Drive
+  của Tùng**, không ghi vào thư mục `output/` cục bộ trong repo.
+
+Lưu ý quan trọng: `docs/wiki/` (Obsidian, trong repo này) **vẫn giữ
+nguyên** — nhưng phạm vi của nó chỉ là bộ nhớ **kỹ thuật** cho AI agent làm
+việc trên chính repo `ErpNext_Hermes` (kiến trúc, quyết định, sự cố khi
+triển khai hạ tầng). Nó không còn được mô tả là "Second Brain" tổng quát
+cho mọi loại tri thức — vai trò đó nay thuộc về Onyx cho dữ liệu nghiệp
+vụ/pháp lý. Xem `docs/wiki/01_architecture/onyx_bridge.md` cho chi tiết
+kỹ thuật của cầu nối Hermes↔Onyx, và CHANGELOG.md `[2026-08-01]`/`[2026-08-05]`.
+
+Chưa làm (out of scope của thay đổi này): chưa có cơ chế tự động ghi
+output do Hermes/Claude tạo ra thẳng vào Google Drive — hiện tại là quy
+ước định hướng, cần chọn cơ chế cụ thể (Google Drive API riêng cho Hermes,
+hay tái dùng connector của Onyx) trước khi triển khai.
+
 ## Bước tiếp theo đề xuất
 
 Xem tab **Issues** của repo GitHub để có danh sách chi tiết, có nhãn ưu

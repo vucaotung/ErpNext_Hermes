@@ -22,9 +22,20 @@ Triển khai bằng Ansible lên 1 VPS, có staging/production tách biệt.
 - [`docs/archive/`](docs/archive/) — kế hoạch triển khai gốc (PDF) và báo
   cáo đối chiếu lịch sử (giữ để tham khảo, không phải trạng thái mới nhất).
 - [`CHANGELOG.md`](CHANGELOG.md) — lịch sử thay đổi theo mốc.
-- [`docs/wiki/`](docs/wiki/00_home.md) — **Second Brain**: bộ nhớ ngoài cho
-  AI agent (kiến trúc, quyết định, sự cố đã gặp + cách sửa), atomic notes có
-  frontmatter, không thay thế PROJECT_HANDBOOK.md mà bổ sung tra cứu nhanh.
+- [`docs/wiki/`](docs/wiki/00_home.md) — bộ nhớ ngoài **kỹ thuật** cho AI
+  agent làm việc trên chính repo này (kiến trúc, quyết định, sự cố đã gặp +
+  cách sửa khi triển khai hạ tầng), atomic notes có frontmatter, không thay
+  thế PROJECT_HANDBOOK.md mà bổ sung tra cứu nhanh. Đây không phải kho tri
+  thức nghiệp vụ/pháp lý — xem mục Onyx bên dưới.
+- **Onyx** (`https://onyx.enterpriseos.bond`) — kho tri thức pháp chế + hồ
+  sơ dự án (RAG, chat trực tiếp), đóng vai trò "Second Brain" cho dữ liệu
+  nghiệp vụ/pháp lý (thay cho mô hình wiki/Obsidian dùng cho loại dữ liệu
+  này). Nạp dữ liệu qua Google Drive connector, lệnh `/ingest <url>` từ
+  Hermes/Telegram, hoặc upload trực tiếp vào Onyx; Hermes đọc lại qua MCP
+  server tích hợp sẵn của Onyx. Output do agent tạo ra (báo cáo, tài liệu
+  tổng hợp) ghi vào Google Drive của người dùng, không ghi vào repo. Chi
+  tiết: [`docs/wiki/01_architecture/onyx_bridge.md`](docs/wiki/01_architecture/onyx_bridge.md)
+  và `docs/PLANNING.md` mục "Kiến trúc bộ nhớ ngoài".
 
 ## Kiến trúc tóm tắt
 
